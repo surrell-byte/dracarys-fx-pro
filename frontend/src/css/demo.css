@@ -1,0 +1,152 @@
+/* ---------- demo account stats strip ---------- */
+
+.demo-account-panel {
+    margin-bottom: 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: 2px;
+    background:
+        radial-gradient(circle at top left, rgba(var(--amber-rgb), 0.07), transparent 55%),
+        linear-gradient(180deg, var(--panel-soft), var(--panel));
+    padding: 16px;
+    box-shadow: var(--shadow-md);
+}
+
+.demo-account-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.demo-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-soft);
+    background: var(--ink-deep);
+}
+
+.demo-stat span {
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--steel);
+}
+
+.demo-stat strong {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: var(--paper);
+    overflow-wrap: anywhere;
+}
+
+#demoNetProfit[data-pnl="gain"] { color: var(--buy); }
+#demoNetProfit[data-pnl="loss"] { color: var(--sell); }
+
+/* ---------- trade journal ---------- */
+
+.journal-section {
+    margin-top: 20px;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--panel-soft), var(--panel));
+    padding: 16px;
+    box-shadow: var(--shadow-md);
+}
+
+.journal-history-head {
+    margin-top: 22px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+}
+
+.journal-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.journal-entry {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line-strong);
+    border-radius: var(--radius-soft);
+    background: var(--ink-deep);
+    padding: 12px 14px;
+}
+
+.journal-entry.journal-win {
+    border-left-color: var(--buy);
+}
+
+.journal-entry.journal-loss {
+    border-left-color: var(--sell);
+}
+
+.journal-entry-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+}
+
+.journal-badge {
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    font-size: 0.7rem;
+}
+
+.journal-win .journal-badge {
+    color: var(--buy);
+    background: rgba(var(--buy-rgb), 0.12);
+}
+
+.journal-loss .journal-badge {
+    color: var(--sell);
+    background: rgba(var(--sell-rgb), 0.12);
+}
+
+.journal-symbol {
+    color: var(--steel);
+    text-transform: uppercase;
+}
+
+.journal-pnl {
+    font-weight: 600;
+}
+
+.journal-pnl[data-pnl="gain"] { color: var(--buy); }
+.journal-pnl[data-pnl="loss"] { color: var(--sell); }
+
+.journal-entry-head time {
+    margin-left: auto;
+    color: var(--steel);
+    font-size: 0.72rem;
+}
+
+.journal-note {
+    margin: 8px 0 0;
+    color: var(--paper);
+    font-family: var(--font-body);
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
+.demo-history-row span[data-pnl="gain"] { color: var(--buy); }
+.demo-history-row span[data-pnl="loss"] { color: var(--sell); }
+
+@media (max-width: 560px) {
+    .demo-account-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .journal-entry-head time {
+        margin-left: 0;
+        flex-basis: 100%;
+    }
+}

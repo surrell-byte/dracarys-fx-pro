@@ -1,0 +1,247 @@
+/* ==========================================================================
+   Responsive layout system - tiers match the reference design:
+     Mobile portrait   <768px         single column, bottom icon nav
+     Tablet portrait    768-1023px    icon-only sidebar, single column
+     Tablet landscape   1024-1279px   icon-only sidebar, wider grids
+     Laptop / Desktop   1280-1599px   full labeled sidebar (default, no
+                                      media query needed - this is the
+                                      un-overridden base layout)
+     Ultrawide          1600px+       wider max content width
+   ========================================================================== */
+
+/* ---------- Ultrawide (1600px+): more breathing room, wider dashboard ---------- */
+@media (min-width: 1600px) {
+    .main .dashboard {
+        width: min(1600px, calc(100% - 80px));
+    }
+
+    .signal-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .data-strip {
+        grid-template-columns: repeat(7, 1fr);
+    }
+
+    .data-cell:nth-child(7n) {
+        border-right: none;
+    }
+}
+
+/* ---------- Tablet landscape (1024-1279px): icon sidebar, 2-col grids ---------- */
+@media (max-width: 1279px) {
+    .app {
+        grid-template-columns: var(--sidebar-w-collapsed) 1fr;
+    }
+
+    .sidebar {
+        padding: 18px 8px;
+    }
+
+    .logo,
+    .menu-hint {
+        display: none;
+    }
+
+    .menu button span.menu-label {
+        display: none;
+    }
+
+    .menu button {
+        justify-content: center;
+        padding: 12px 4px;
+    }
+
+    .signal-grid,
+    .stat-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .data-strip {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .data-cell:nth-child(4n) {
+        border-right: none;
+    }
+
+    .data-cell:nth-child(-n+4) {
+        border-bottom: 1px solid var(--line);
+    }
+}
+
+/* ---------- Tablet portrait (768-1023px): icon sidebar continues, tighter grids ---------- */
+@media (max-width: 1023px) {
+    .trading-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .controls-panel {
+        grid-column: 1 / -1;
+    }
+
+    .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .history-row {
+        grid-template-columns: 78px 56px minmax(0, 1fr);
+    }
+
+    .history-row span:nth-of-type(2) {
+        display: none;
+    }
+}
+
+/* ---------- Mobile portrait + landscape (<768px): bottom-fixed nav bar ---------- */
+@media (max-width: 767px) {
+    .app {
+        display: block;
+    }
+
+    /* Sidebar becomes a fixed bottom tab bar - icon + label, matching the
+       "Bottom Navigation" tile in the reference image. */
+    .sidebar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: auto;
+        height: var(--bottom-nav-h);
+        width: 100%;
+        flex-direction: row;
+        align-items: stretch;
+        gap: 0;
+        padding: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-right: none;
+        border-top: 1px solid var(--line);
+        background: linear-gradient(180deg, var(--panel), var(--ink-deep));
+        z-index: 40;
+    }
+
+    .logo,
+    .menu-hint {
+        display: none;
+    }
+
+    .menu {
+        flex-direction: row;
+        flex: 1;
+        gap: 0;
+    }
+
+    .menu button {
+        flex: 1;
+        min-width: 64px;
+        flex-direction: column;
+        gap: 2px;
+        border-left: none;
+        border-top: 3px solid transparent;
+        border-radius: 0;
+        padding: 8px 4px 6px;
+        white-space: nowrap;
+    }
+
+    .menu button span.menu-label {
+        display: block;
+        font-size: 0.62rem;
+    }
+
+    .menu button.active {
+        border-left-color: transparent;
+        border-top-color: var(--amber);
+        background: rgba(var(--amber-rgb), 0.08);
+        transform: none;
+    }
+
+    /* Leave room at the bottom of the page so content isn't hidden
+       underneath the fixed nav bar. */
+    .main {
+        padding-bottom: calc(var(--bottom-nav-h) + 16px);
+    }
+
+    .main .dashboard {
+        width: min(100% - 20px, 1180px);
+        padding-top: 16px;
+    }
+
+    .topbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .market-controls {
+        grid-template-columns: 1fr;
+    }
+
+    .signal-grid,
+    .stat-strip,
+    .trading-grid,
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .data-strip {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .data-cell:nth-child(2n) {
+        border-right: none;
+    }
+
+    .data-cell:not(:nth-last-child(-n+2)) {
+        border-bottom: 1px solid var(--line);
+    }
+
+    canvas {
+        height: 280px;
+    }
+
+    .mode-picker {
+        grid-template-columns: 1fr;
+    }
+
+    .history-row {
+        grid-template-columns: 72px minmax(0, 1fr);
+    }
+
+    .history-row span {
+        display: none;
+    }
+}
+
+/* ---------- Mobile landscape refinement (480-767px): 2-col where mobile portrait is 1 ---------- */
+@media (min-width: 480px) and (max-width: 767px) {
+    .signal-grid,
+    .stat-strip,
+    .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ==========================================================================
+   Presentation Mode - manual toggle (see presentationMode.js), not tied
+   to a screen-width breakpoint. Large text, simplified nav, high contrast.
+   ========================================================================== */
+body.presentation-mode {
+    font-size: calc(1rem * var(--font-scale, 1.35));
+}
+
+body.presentation-mode .menu-hint {
+    display: none;
+}
+
+body.presentation-mode .menu button {
+    padding: 16px 14px;
+    font-size: 1.05rem;
+}
+
+body.presentation-mode .panel {
+    border-width: 2px;
+}
+
+body.presentation-mode .data-strip {
+    grid-template-columns: repeat(4, 1fr);
+}

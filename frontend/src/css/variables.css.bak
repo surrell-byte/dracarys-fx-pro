@@ -1,0 +1,49 @@
+:root {
+    color-scheme: dark;
+
+    /* base surfaces */
+    --ink: #0a0807;
+    --ink-deep: #060504;
+    --panel: #14110d;
+    --panel-soft: #1a1611;
+
+    /* text */
+    --paper: #f3ead8;
+    --steel: #9a8f7e;
+    --steel-rgb: 154, 143, 126;
+
+    /* accent (drives lines, focus rings, glows) */
+    --amber: #ffb000;
+    --amber-dim: #b87f00;
+    --amber-rgb: 255, 176, 0;
+
+    /* state colors */
+    --buy: #3ddc84;
+    --buy-rgb: 61, 220, 132;
+    --sell: #ff5c5c;
+    --sell-rgb: 255, 92, 92;
+
+    /* derived from accent so every theme's lines/borders match its palette */
+    --line: rgba(var(--amber-rgb), 0.16);
+    --line-strong: rgba(var(--amber-rgb), 0.36);
+
+    /* shadows */
+    --shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.28);
+    --shadow-md: 0 14px 32px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+
+    /* Interactive elements (buttons/inputs/badges) get a touch of rounding
+       for a softer feel; structural panels/chart/data-strip stay sharp at
+       2px — that hard edge is core to the terminal look and shouldn't get lost. */
+    --radius-soft: 4px;
+
+    --font-display: "IBM Plex Mono", "Courier New", monospace;
+    --font-body: "Inter", Arial, sans-serif;
+
+    --confidence-fill: 0%;
+
+    /* sidebar shell */
+    --sidebar-w: 250px;
+    --sidebar-w-collapsed: 76px;
+}

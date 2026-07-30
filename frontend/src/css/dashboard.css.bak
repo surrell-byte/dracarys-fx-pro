@@ -1,0 +1,273 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at 50% -10%, rgba(var(--amber-rgb), 0.07), transparent 38%),
+        var(--ink);
+    color: var(--paper);
+    font-family: var(--font-body);
+}
+
+/* ---------- ticker tape (signature element) ---------- */
+
+.ticker {
+    width: 100%;
+    overflow: hidden;
+    background: var(--ink-deep);
+    border-bottom: 1px solid var(--line-strong);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+}
+
+.ticker-track {
+    display: flex;
+    width: max-content;
+    gap: 14px;
+    padding: 7px 0;
+    white-space: nowrap;
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--amber-dim);
+    animation: scroll-ticker 38s linear infinite;
+}
+
+.ticker-track span {
+    flex: none;
+}
+
+@keyframes scroll-ticker {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ticker-track {
+        animation: none;
+    }
+}
+
+/* ---------- topbar ---------- */
+
+.topbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+    scroll-margin-top: 20px;
+}
+
+.eyebrow {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber-dim);
+}
+
+h1 {
+    margin: 6px 0 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3.4vw, 2.3rem);
+    letter-spacing: -0.01em;
+    color: var(--paper);
+}
+
+.market-controls {
+    display: grid;
+    grid-template-columns: 150px 180px auto;
+    gap: 10px;
+    align-items: end;
+}
+
+/* ---------- signal hero row ---------- */
+
+.signal-grid {
+    display: grid;
+    grid-template-columns: 1.8fr 1fr 1fr 1fr;
+    gap: 12px;
+    scroll-margin-top: 20px;
+}
+
+.signal-panel {
+    position: relative;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background:
+        radial-gradient(circle at top, rgba(var(--amber-rgb), 0.09), transparent 55%),
+        linear-gradient(180deg, var(--panel-soft), var(--panel));
+    border-color: var(--line-strong);
+}
+
+.flag-row {
+    margin-top: 10px;
+}
+
+.signal-value {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(2.6rem, 7vw, 4.4rem);
+    letter-spacing: 0.03em;
+    line-height: 1;
+}
+
+.confidence {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 16px 0 8px;
+    color: var(--steel);
+    font-size: 0.86rem;
+}
+
+.confidence strong {
+    font-family: var(--font-display);
+    color: var(--paper);
+}
+
+.led-meter {
+    position: relative;
+    height: 12px;
+    margin-bottom: 14px;
+    background: rgba(var(--amber-rgb), 0.1);
+    border-radius: 1px;
+    overflow: hidden;
+}
+
+.led-meter::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: var(--confidence-fill);
+    background: linear-gradient(90deg, var(--amber-dim), var(--amber));
+    box-shadow: 0 0 12px rgba(var(--amber-rgb), 0.5);
+    transition: width 220ms ease;
+}
+
+.led-meter::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent calc(10% - 3px),
+        var(--ink) calc(10% - 3px),
+        var(--ink) 10%
+    );
+}
+
+/* Probability Engine breakdown: buy/wait/sell as a distribution that
+   always sums to 100%, sitting directly under the confidence meter it's
+   derived from. */
+.probability-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.probability-row {
+    display: grid;
+    grid-template-columns: 34px 1fr 40px;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    color: var(--steel);
+}
+
+.probability-row strong {
+    font-family: var(--font-display);
+    color: var(--paper);
+    text-align: right;
+}
+
+.probability-track {
+    position: relative;
+    height: 6px;
+    border-radius: 1px;
+    background: rgba(var(--amber-rgb), 0.08);
+    overflow: hidden;
+}
+
+.probability-fill {
+    position: absolute;
+    inset: 0;
+    width: 0%;
+    transition: width 220ms ease;
+}
+
+.probability-row[data-side="buy"] .probability-fill {
+    background: var(--buy);
+    box-shadow: 0 0 8px rgba(var(--buy-rgb), 0.5);
+}
+
+.probability-row[data-side="sell"] .probability-fill {
+    background: var(--sell);
+    box-shadow: 0 0 8px rgba(var(--sell-rgb), 0.5);
+}
+
+.probability-row[data-side="wait"] .probability-fill {
+    background: var(--amber-dim);
+}
+
+/* ---------- data strip (quote line) — lives with the chart under "Market Overview" ---------- */
+
+.market-overview-block {
+    scroll-margin-top: 20px;
+}
+
+.data-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    background: var(--ink-deep);
+    overflow: hidden;
+}
+
+.data-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    border-right: 1px solid var(--line);
+}
+
+.data-cell:last-child {
+    border-right: none;
+}
+
+.data-cell span {
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--steel);
+}
+
+.data-cell strong {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--paper);
+    overflow-wrap: anywhere;
+}
+
+/* ---------- trading controls (execution + demo/paper account) ---------- */
+
+.trading-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+    scroll-margin-top: 20px;
+}

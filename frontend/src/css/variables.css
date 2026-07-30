@@ -1,0 +1,72 @@
+:root {
+    color-scheme: dark;
+
+    /* base surfaces - cool near-black, green-tinted (was warm brown/amber) */
+    --ink: #0a0f0c;
+    --ink-deep: #060907;
+    --panel: #101613;
+    --panel-soft: #141c18;
+
+    /* text - cool white (was warm cream) */
+    --paper: #eef2ef;
+    --steel: #8fa39a;
+    --steel-rgb: 143, 163, 154;
+
+    /* accent (drives lines, focus rings, glows) - bright fintech green
+       (variable is still named --amber for backward compatibility with
+       every file below that references it - only the value changed) */
+    --amber: #22c55e;
+    --amber-dim: #16a34a;
+    --amber-rgb: 34, 197, 94;
+
+    /* state colors - buy matches accent green, sell stays a clear red */
+    --buy: #22c55e;
+    --buy-rgb: 34, 197, 94;
+    --sell: #f87171;
+    --sell-rgb: 248, 113, 113;
+
+    /* derived from accent so every theme's lines/borders match its palette */
+    --line: rgba(var(--amber-rgb), 0.16);
+    --line-strong: rgba(var(--amber-rgb), 0.36);
+
+    /* shadows */
+    --shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.28);
+    --shadow-md: 0 14px 32px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+
+    /* Interactive elements (buttons/inputs/badges) get a touch of rounding
+       for a softer feel; structural panels/chart/data-strip stay sharp at
+       2px - that hard edge is core to the terminal look and shouldn't get lost. */
+    --radius-soft: 4px;
+
+    --font-display: "IBM Plex Mono", "Courier New", monospace;
+    --font-body: "Inter", Arial, sans-serif;
+
+    --confidence-fill: 0%;
+
+    /* sidebar shell */
+    --sidebar-w: 250px;
+    --sidebar-w-collapsed: 76px;
+    --bottom-nav-h: 64px;
+
+    /* breakpoint reference values (used in comments/media queries below -
+       CSS media queries can't consume custom properties directly, but
+       keeping the numbers here means responsive.css and this file agree
+       on one source of truth to eyeball) */
+    --bp-mobile-landscape: 480px;
+    --bp-tablet-portrait: 768px;
+    --bp-tablet-landscape: 1024px;
+    --bp-laptop: 1280px;
+    --bp-ultrawide: 1600px;
+    --bp-presentation: 1920px;
+}
+
+/* Presentation Mode - manual toggle for smartboards/classroom displays.
+   Large text, high contrast, simplified nav. Toggled via the floating
+   button (see presentationMode.js) rather than an automatic breakpoint,
+   since a huge desktop monitor and an actual smartboard both live above
+   1600px but need very different treatments. */
+body.presentation-mode {
+    --font-scale: 1.35;
+}

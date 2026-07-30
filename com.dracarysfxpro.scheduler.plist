@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.dracarysfxpro.scheduler</string>
+
+    <!-- PROJECT_PATH gets replaced by install.sh with the real path -->
+    <key>WorkingDirectory</key>
+    <string>PROJECT_PATH/frontend</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>NPM_PATH</string>
+        <string>run</string>
+        <string>scheduler</string>
+    </array>
+
+    <!-- Start on load (i.e. on login / when this plist is installed) -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- If it crashes or the Mac wakes from sleep and it's not running,
+         launchd restarts it. This is the "survives closing VS Code" part. -->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+
+    <!-- Make sure node/npm are on PATH even though launchd doesn't load your
+         shell profile (.zshrc) - NODE_BIN_DIR gets replaced by install.sh -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>NODE_BIN_DIR:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
+    <!-- Logs so you can check what happened even without VS Code open -->
+    <key>StandardOutPath</key>
+    <string>PROJECT_PATH/frontend/data/scheduler.log</string>
+    <key>StandardErrorPath</key>
+    <string>PROJECT_PATH/frontend/data/scheduler.error.log</string>
+</dict>
+</plist>

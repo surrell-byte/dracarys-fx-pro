@@ -1,0 +1,12 @@
+{
+  "name": "dracarys-fx-pro",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check-imports": "node scripts/check-imports.js",
+    "predev": "npm run check-imports",
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm run check-imports && npm --prefix frontend run build"
+  }
+}
