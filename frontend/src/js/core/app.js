@@ -77,7 +77,6 @@ const elements = {
     entryPrice: document.querySelector("#entryPrice"),
     takeProfit1: document.querySelector("#takeProfit1"),
     riskReward: document.querySelector("#riskReward"),
-    suggestedExpiry: document.querySelector("#suggestedExpiry"),
     executionStatus: document.querySelector("#executionStatus"),
     paperPosition: document.querySelector("#paperPosition"),
     paperEntry: document.querySelector("#paperEntry"),
@@ -389,10 +388,6 @@ function renderSignal(signal) {
     if (elements.takeProfit) {
         elements.takeProfit.textContent = signal.risk ? formatPrice(signal.risk.takeProfit2) : "--";
     }
-    if (elements.suggestedExpiry) {
-        elements.suggestedExpiry.textContent = signal.expiry?.label ?? "--";
-    }
-
     if (elements.riskReward) {
         elements.riskReward.textContent = signal.risk ? signal.risk.rrLabel : "--";
     }
@@ -1202,7 +1197,7 @@ function drawChart() {
 
     ctx.stroke();
 
-    ctx.fillStyle = "#a9b4c7";
+    ctx.fillStyle = "#475569";
     ctx.font = "12px Arial";
     ctx.fillText(formatPrice(max), 8, 16);
     ctx.fillText(formatPrice(min), 8, height - 8);

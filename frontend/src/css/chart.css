@@ -1,7 +1,7 @@
 .chart-section {
     margin: 20px 0;
     border: 1px solid var(--line);
-    border-radius: 2px;
+    border-radius: var(--radius-card);
     background:
         linear-gradient(rgba(var(--amber-rgb), 0.035) 1px, transparent 1px),
         linear-gradient(90deg, rgba(var(--amber-rgb), 0.035) 1px, transparent 1px),

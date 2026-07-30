@@ -14,18 +14,18 @@
         <aside class="sidebar">
             <div class="logo">DRACARYS<span>·</span>FX</div>
             <nav class="menu" id="sideMenu">
-                <button type="button" data-target="section-dashboard" class="active"><span>🏠</span><span class="menu-label">Dashboard</span></button>
-                <button type="button" data-target="section-signals"><span>📈</span><span class="menu-label">Live Signals</span></button>
-                <button type="button" data-target="section-market"><span>📊</span><span class="menu-label">Market Overview</span></button>
-                <button type="button" data-target="section-lab"><span>📉</span><span class="menu-label">Strategy Lab</span></button>
-                <button type="button" data-target="section-execution"><span>💼</span><span class="menu-label">Demo Account</span></button>
-                <button type="button" data-target="section-journal"><span>🤖</span><span class="menu-label">AI Journal</span></button>
-                <button type="button" disabled title="Not built yet"><span>📅</span><span class="menu-label">Weekly Reports</span></button>
-                <button type="button" data-target="section-history"><span>📚</span><span class="menu-label">Trade History</span></button>
-                <button type="button" disabled title="Not built yet"><span>⚙</span><span class="menu-label">Settings</span></button>
-                <button type="button" disabled title="Not built yet"><span>🎨</span><span class="menu-label">Themes</span></button>
+                <button type="button" data-target="page-dashboard" class="active"><span class="menu-icon">🏠</span><span class="menu-label">Dashboard</span></button>
+                <button type="button" data-target="page-signals"><span class="menu-icon">📈</span><span class="menu-label">Live Signals</span></button>
+                <button type="button" data-target="page-market"><span class="menu-icon">📊</span><span class="menu-label">Market Overview</span></button>
+                <button type="button" data-target="page-lab"><span class="menu-icon">📉</span><span class="menu-label">Strategy Lab</span></button>
+                <button type="button" data-target="page-execution"><span class="menu-icon">💼</span><span class="menu-label">Demo Account</span></button>
+                <button type="button" data-target="page-journal"><span class="menu-icon">🤖</span><span class="menu-label">AI Journal</span></button>
+                <button type="button" disabled title="Not built yet"><span class="menu-icon">📅</span><span class="menu-label">Weekly Reports</span></button>
+                <button type="button" data-target="page-history"><span class="menu-icon">📚</span><span class="menu-label">Trade History</span></button>
+                <button type="button" disabled title="Not built yet"><span class="menu-icon">⚙</span><span class="menu-label">Settings</span></button>
+                <button type="button" disabled title="Not built yet"><span class="menu-icon">🎨</span><span class="menu-label">Themes</span></button>
             </nav>
-            <p class="menu-hint">Weekly Reports, Settings &amp; Themes aren't wired up to anything yet — everything else jumps to the matching section.</p>
+            <p class="menu-hint">Weekly Reports, Settings &amp; Themes aren't wired up to anything yet — everything else routes to its own page.</p>
         </aside>
 
         <div class="main">
@@ -41,6 +41,7 @@
             </div>
 
             <main class="dashboard">
+                <div class="page" id="page-dashboard">
                 <header class="topbar" id="section-dashboard">
                     <div>
                         <p class="eyebrow" id="marketLabel">BTCUSDT · 1m live candles</p>
@@ -113,7 +114,9 @@
                         <p class="subtle" id="statAccountBalanceSub">+0.00% today</p>
                     </article>
                 </section>
+                </div>
 
+                <div class="page" id="page-signals">
                 <section class="signal-grid" id="section-signals">
                     <article class="panel signal-panel">
                         <p class="label">Live Signal</p>
@@ -161,7 +164,9 @@
                         <div class="metric" id="resistance">--</div>
                     </article>
                 </section>
+                </div>
 
+                <div class="page" id="page-market">
                 <div class="market-overview-block" id="section-market">
                     <section class="chart-section">
                         <canvas id="chart" aria-label="Live closing price chart"></canvas>
@@ -182,10 +187,11 @@
                         <div class="data-cell"><span>TP1</span><strong id="takeProfit1">--</strong></div>
                         <div class="data-cell"><span>TP2</span><strong id="takeProfit">--</strong></div>
                         <div class="data-cell"><span>R:R</span><strong id="riskReward">--</strong></div>
-                        <div class="data-cell"><span>Suggested Expiry</span><strong id="suggestedExpiry">--</strong></div>
                     </section>
                 </div>
+                </div>
 
+                <div class="page" id="page-execution">
                 <div id="section-execution">
                     <section class="demo-account-panel">
                         <div class="section-head">
@@ -341,7 +347,9 @@
                     <p class="subtle">What the current signal is actually seeing, condition by condition — not every strategy uses every check, so items only light up when they apply.</p>
                     <div id="decisionChecklist"></div>
                 </section>
+                </div>
 
+                <div class="page" id="page-journal">
                 <section class="journal-section" id="section-journal">
                     <div class="section-head">
                         <div>
@@ -361,7 +369,9 @@
                     </div>
                     <div class="history-list" id="demoHistoryList"></div>
                 </section>
+                </div>
 
+                <div class="page" id="page-lab">
                 <section class="lab-section" id="section-lab">
                     <div class="section-head">
                         <div>
@@ -543,6 +553,10 @@
                     </div>
                 </section>
 
+                </section>
+                </div>
+
+                <div class="page" id="page-history">
                 <section class="history-section" id="section-history">
                     <div class="section-head">
                         <div>
@@ -553,6 +567,7 @@
                     </div>
                     <div class="history-list" id="historyList"></div>
                 </section>
+                </div>
             </main>
         </div>
     </div>
@@ -561,7 +576,7 @@
     <button id="quickPresentation" type="button" aria-pressed="false" title="Enter Presentation Mode (smartboard)">🖥️</button>
 
     <script type="module" src="src/js/core/app.js"></script>
-    <script type="module" src="src/js/components/sidebar.js"></script>
+    <script type="module" src="src/js/core/router.js"></script>
     <script type="module" src="src/js/components/themeSelector.js"></script>
     <script type="module" src="src/js/core/presentationMode.js"></script>
 </body>

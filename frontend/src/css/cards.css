@@ -3,7 +3,7 @@
 .panel {
     min-width: 0;
     border: 1px solid var(--line);
-    border-radius: 2px;
+    border-radius: var(--radius-card);
     background: linear-gradient(180deg, var(--panel-soft), var(--panel));
     padding: 16px;
     box-shadow: var(--shadow-md);

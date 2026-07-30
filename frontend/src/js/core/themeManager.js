@@ -9,6 +9,7 @@
 const STORAGE_KEY = "dracarysfxpro-theme";
 
 const THEMES = [
+    { id: "dark-classic", name: "Dark Classic (previous default)" },
     { id: "tradingview", name: "TradingView" },
     { id: "bloomberg", name: "Bloomberg" },
     { id: "matrix", name: "Matrix" },

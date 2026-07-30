@@ -1,44 +1,55 @@
 :root {
-    color-scheme: dark;
+    color-scheme: light;
 
-    /* base surfaces - cool near-black, green-tinted (was warm brown/amber) */
-    --ink: #0a0f0c;
-    --ink-deep: #060907;
-    --panel: #101613;
-    --panel-soft: #141c18;
+    /* base surfaces - light theme: soft gray page, white cards
+       (was near-black; flipped to match the OTC Signal AI Pro mockup) */
+    --ink: #eef1f4;
+    --ink-deep: #e2e6ec;
+    --panel: #ffffff;
+    --panel-soft: #ffffff;
 
-    /* text - cool white (was warm cream) */
-    --paper: #eef2ef;
-    --steel: #8fa39a;
-    --steel-rgb: 143, 163, 154;
+    /* text - dark navy on light surfaces (was cool white) */
+    --paper: #111827;
+    --steel: #64748b;
+    --steel-rgb: 100, 116, 139;
 
-    /* accent (drives lines, focus rings, glows) - bright fintech green
-       (variable is still named --amber for backward compatibility with
-       every file below that references it - only the value changed) */
-    --amber: #22c55e;
-    --amber-dim: #16a34a;
-    --amber-rgb: 34, 197, 94;
+    /* accent (drives lines, focus rings, glows) - fintech green, tuned a
+       shade deeper than the dark-theme version so it holds contrast on
+       white cards */
+    --amber: #16a34a;
+    --amber-dim: #15803d;
+    --amber-rgb: 22, 163, 74;
 
     /* state colors - buy matches accent green, sell stays a clear red */
-    --buy: #22c55e;
-    --buy-rgb: 34, 197, 94;
-    --sell: #f87171;
-    --sell-rgb: 248, 113, 113;
+    --buy: #16a34a;
+    --buy-rgb: 22, 163, 74;
+    --sell: #e11d48;
+    --sell-rgb: 225, 29, 72;
 
     /* derived from accent so every theme's lines/borders match its palette */
-    --line: rgba(var(--amber-rgb), 0.16);
-    --line-strong: rgba(var(--amber-rgb), 0.36);
+    --line: rgba(15, 23, 42, 0.08);
+    --line-strong: rgba(15, 23, 42, 0.16);
 
-    /* shadows */
-    --shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
-    --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.28);
-    --shadow-md: 0 14px 32px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+    /* shadows - lighter, since these now sit on a white/light-gray page
+       instead of near-black */
+    --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+    --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.07);
+    --shadow-lg: 0 16px 36px rgba(15, 23, 42, 0.1);
+
+    /* sidebar stays dark navy regardless of theme, matching the mockup
+       (every layout in the reference image keeps a dark sidebar even
+       though the main content is light) */
+    --sidebar-bg: #0f172a;
+    --sidebar-bg-deep: #0a0f1c;
+    --sidebar-text: #94a3b8;
+    --sidebar-active-text: #ffffff;
 
     /* Interactive elements (buttons/inputs/badges) get a touch of rounding
        for a softer feel; structural panels/chart/data-strip stay sharp at
        2px - that hard edge is core to the terminal look and shouldn't get lost. */
     --radius-soft: 4px;
+    --radius-card: 14px;
 
     --font-display: "IBM Plex Mono", "Courier New", monospace;
     --font-body: "Inter", Arial, sans-serif;
