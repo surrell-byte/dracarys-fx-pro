@@ -6,7 +6,7 @@
     <title>Dracarys FX Pro</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="src/css/style.css">
 </head>
 <body>
@@ -27,9 +27,33 @@
                 <button type="button" disabled title="Not built yet"><span class="menu-icon">🎨</span><span class="menu-label">Themes</span></button>
             </nav>
             <p class="menu-hint">Weekly Reports, Settings &amp; Themes aren't wired up to anything yet — everything else routes to its own page.</p>
+            <div class="profile-card">
+                <div class="profile-avatar">👤</div>
+                <div class="profile-info">
+                    <div class="profile-username">Trader</div>
+                    <div class="profile-plan">Pro Plan</div>
+                </div>
+            </div>
         </aside>
 
         <div class="main">
+            <header class="topbar" id="section-dashboard">
+                <div class="topbar-left">
+                    <p class="eyebrow" id="marketLabel">BTCUSDT · 1m live candles</p>
+                    <h1>Dracarys FX Pro</h1>
+                </div>
+                <div class="topbar-center">
+                    <input type="search" class="search-bar" placeholder="Search pairs, strategies, signals..." aria-label="Search">
+                </div>
+                <div class="topbar-right">
+                    <div class="status-pill" id="status">Disconnected</div>
+                    <div id="themeSelector"></div>
+                    <button type="button" class="icon-btn" title="Notifications" aria-label="Notifications">🔔</button>
+                    <button type="button" class="icon-btn" title="Cycle theme" aria-label="Theme">🎨</button>
+                    <button type="button" class="icon-btn" title="Profile" aria-label="Profile">👤</button>
+                </div>
+            </header>
+
             <div class="ticker" aria-hidden="true">
                 <div class="ticker-track">
                     <span>LIVE FEED</span><span>·</span><span>SIGNAL ENGINE ARMED</span><span>·</span>
@@ -42,533 +66,590 @@
             </div>
 
             <main class="dashboard">
-                <div class="page" id="page-dashboard">
-                <header class="topbar" id="section-dashboard">
-                    <div>
-                        <p class="eyebrow" id="marketLabel">BTCUSDT · 1m live candles</p>
-                        <h1>Dracarys FX Pro</h1>
-                    </div>
-                    <div class="market-controls">
-                        <label>
-                            <span>Pair</span>
-                            <select id="pairSelect">
-                                <optgroup label="Crypto (Binance)">
-                                <option value="btcusdt" data-api-symbol="BTC/USDT" data-asset-class="crypto" selected>BTC/USDT</option>
-                                <option value="ethusdt" data-api-symbol="ETH/USDT" data-asset-class="crypto">ETH/USDT</option>
-                                <option value="bnbusdt" data-api-symbol="BNB/USDT" data-asset-class="crypto">BNB/USDT</option>
-                                <option value="solusdt" data-api-symbol="SOL/USDT" data-asset-class="crypto">SOL/USDT</option>
-                                <option value="xrpusdt" data-api-symbol="XRP/USDT" data-asset-class="crypto">XRP/USDT</option>
-                                <option value="adausdt" data-api-symbol="ADA/USDT" data-asset-class="crypto">ADA/USDT</option>
-                                <option value="dogeusdt" data-api-symbol="DOGE/USDT" data-asset-class="crypto">DOGE/USDT</option>
-                                <option value="eurusdt" data-api-symbol="EUR/USDT" data-asset-class="crypto">EUR/USDT</option>
-                                <option value="gbpusdt" data-api-symbol="GBP/USDT" data-asset-class="crypto">GBP/USDT</option>
-                                </optgroup>
-                                <optgroup label="Forex (Twelve Data)">
-                                <option value="eurusd" data-api-symbol="EUR/USD" data-asset-class="forex">EUR/USD</option>
-                                <option value="gbpusd" data-api-symbol="GBP/USD" data-asset-class="forex">GBP/USD</option>
-                                <option value="usdjpy" data-api-symbol="USD/JPY" data-asset-class="forex">USD/JPY</option>
-                                <option value="audusd" data-api-symbol="AUD/USD" data-asset-class="forex">AUD/USD</option>
-                                <option value="usdcad" data-api-symbol="USD/CAD" data-asset-class="forex">USD/CAD</option>
-                                <option value="usdchf" data-api-symbol="USD/CHF" data-asset-class="forex">USD/CHF</option>
-                                <option value="nzdusd" data-api-symbol="NZD/USD" data-asset-class="forex">NZD/USD</option>
-                                </optgroup>
-                            </select>
-                        </label>
-                        <label>
-                            <span>Strategy</span>
-                            <select id="strategySelect">
-                                <option value="balanced" selected>Balanced</option>
-                                <option value="trend">Trend Follow</option>
-                                <option value="meanReversion">Mean Reversion</option>
-                                <option value="breakout">Breakout</option>
-                                <option value="scalping">Scalping</option>
-                                <option value="pullback">Pullback (Fib)</option>
-                                <option value="momentum">Momentum</option>
-                                <option value="range">Range Trading</option>
-                                <option value="ema165SarRoc">EMA165 SAR ROC21</option>
-                                <option value="trendFollowing2">Trend Following 2 (EMA 50/200)</option>
-                                <option value="breakout2">Breakout 2 (Volume Confirmed)</option>
-                                <option value="meanReversion2">Mean Reversion 2 (RSI Range)</option>
-                                <option value="emaPullbackAdx">EMA Pullback (ADX Filter)</option>
-                                <option value="aiConfidence">AI Confidence Pipeline</option>
-                            </select>
-                        </label>
-                        <div class="status-pill" id="status">Disconnected</div>
-                        <div id="themeSelector"></div>
-                    </div>
-                </header>
+                <div class="page active" id="page-dashboard">
+                    <!-- KPI Cards -->
+                    <section class="kpi-grid" aria-label="Key metrics">
+                        <article class="kpi-card">
+                            <p class="kpi-label">Portfolio</p>
+                            <div class="kpi-value" id="statAccountBalance">$10,000.00</div>
+                            <p class="kpi-sub" id="statAccountBalanceSub">+0.00% today</p>
+                        </article>
+                        <article class="kpi-card">
+                            <p class="kpi-label">PnL</p>
+                            <div class="kpi-value" id="statPnl">+$0.00</div>
+                            <p class="kpi-sub">Session total</p>
+                        </article>
+                        <article class="kpi-card">
+                            <p class="kpi-label">Win Rate</p>
+                            <div class="kpi-value" id="statWinRate">0%</div>
+                            <p class="kpi-sub">Closed trades</p>
+                        </article>
+                        <article class="kpi-card">
+                            <p class="kpi-label">Signals</p>
+                            <div class="kpi-value" id="statSignalsCount">0</div>
+                            <p class="kpi-sub">This session</p>
+                        </article>
+                    </section>
 
-                <section class="stat-strip" id="statStrip">
-                    <article class="panel">
-                        <p class="label">Signals (Session)</p>
-                        <div class="metric" id="statSignalsCount">0</div>
-                        <p class="subtle">Since this tab was opened</p>
-                    </article>
-                    <article class="panel">
-                        <p class="label">Open Trades</p>
-                        <div class="metric" id="statOpenTrades">0</div>
-                        <p class="subtle">Active demo positions</p>
-                    </article>
-                    <article class="panel">
-                        <p class="label">Account Balance</p>
-                        <div class="metric" id="statAccountBalance">$10,000.00</div>
-                        <p class="subtle" id="statAccountBalanceSub">+0.00% today</p>
-                    </article>
-                </section>
+                    <!-- Main Chart -->
+                    <div class="chart-container">
+                        <div class="chart-toolbar">
+                            <div class="chart-toolbar-group">
+                                <button type="button" class="icon-btn" title="Chart type" aria-label="Chart type">📈</button>
+                                <button type="button" class="icon-btn" title="Indicators" aria-label="Indicators">📊</button>
+                            </div>
+                            <div class="chart-toolbar-group">
+                                <button type="button" class="icon-btn" title="Fullscreen" aria-label="Fullscreen">⛶</button>
+                            </div>
+                        </div>
+                        <section class="chart-section">
+                            <canvas id="chart" aria-label="Live closing price chart"></canvas>
+                        </section>
+                        <div class="chart-timeframes">
+                            <button type="button" class="timeframe-btn" data-tf="1m">1m</button>
+                            <button type="button" class="timeframe-btn" data-tf="5m">5m</button>
+                            <button type="button" class="timeframe-btn active" data-tf="15m">15m</button>
+                            <button type="button" class="timeframe-btn" data-tf="1h">1H</button>
+                            <button type="button" class="timeframe-btn" data-tf="4h">4H</button>
+                            <button type="button" class="timeframe-btn" data-tf="1d">1D</button>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Cards -->
+                    <div class="bottom-grid">
+                        <!-- Signals -->
+                        <div class="bottom-card">
+                            <div class="bottom-card-header">
+                                <h2 class="bottom-card-title">Signals</h2>
+                                <span class="badge purple" id="signalBadge">HOLD</span>
+                            </div>
+                            <div class="bottom-card-body">
+                                <div class="signal-panel">
+                                    <p class="label">Live Signal</p>
+                                    <div class="flag-row">
+                                        <div class="signal-value" id="signal" data-signal="hold">HOLD</div>
+                                    </div>
+                                    <div class="confidence">
+                                        <span>Confidence</span>
+                                        <strong id="confidence">0%</strong>
+                                    </div>
+                                    <div class="led-meter" aria-hidden="true"></div>
+                                    <div class="probability-breakdown" id="probabilityBreakdown">
+                                        <div class="probability-row" data-side="buy">
+                                            <span>Buy</span>
+                                            <div class="probability-track"><div class="probability-fill" id="probBuyFill"></div></div>
+                                            <strong id="probBuy">0%</strong>
+                                        </div>
+                                        <div class="probability-row" data-side="wait">
+                                            <span>Wait</span>
+                                            <div class="probability-track"><div class="probability-fill" id="probWaitFill"></div></div>
+                                            <strong id="probWait">100%</strong>
+                                        </div>
+                                        <div class="probability-row" data-side="sell">
+                                            <span>Sell</span>
+                                            <div class="probability-track"><div class="probability-fill" id="probSellFill"></div></div>
+                                            <strong id="probSell">0%</strong>
+                                        </div>
+                                    </div>
+                                    <p class="reason" id="reason">Collecting candles</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Market Overview -->
+                        <div class="bottom-card">
+                            <div class="bottom-card-header">
+                                <h2 class="bottom-card-title">Market Overview</h2>
+                            </div>
+                            <div class="bottom-card-body">
+                                <div class="data-strip" id="section-market">
+                                    <div class="data-cell"><span>RSI</span><strong id="rsi">--</strong></div>
+                                    <div class="data-cell"><span>ADX</span><strong id="adx">--</strong></div>
+                                    <div class="data-cell"><span>MACD Hist</span><strong id="macd">--</strong></div>
+                                    <div class="data-cell"><span>Pattern</span><strong id="pattern">none</strong></div>
+                                    <div class="data-cell"><span>Strategy</span><strong id="strategyName">Balanced</strong></div>
+                                    <div class="data-cell"><span>Quality</span><strong id="quality">--</strong></div>
+                                    <div class="data-cell"><span>Volatility</span><strong id="volatility">--</strong></div>
+                                    <div class="data-cell"><span>Volume</span><strong id="volumeRatio">--</strong></div>
+                                    <div class="data-cell"><span>Daily Trend</span><strong id="htfTrend">--</strong></div>
+                                    <div class="data-cell"><span>Entry</span><strong id="entryPrice">--</strong></div>
+                                    <div class="data-cell"><span>Stop</span><strong id="stopLoss">--</strong></div>
+                                    <div class="data-cell"><span>TP1</span><strong id="takeProfit1">--</strong></div>
+                                    <div class="data-cell"><span>TP2</span><strong id="takeProfit">--</strong></div>
+                                    <div class="data-cell"><span>R:R</span><strong id="riskReward">--</strong></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Trades -->
+                        <div class="bottom-card">
+                            <div class="bottom-card-header">
+                                <h2 class="bottom-card-title">Recent Trades</h2>
+                            </div>
+                            <div class="bottom-card-body">
+                                <div class="history-list" id="historyList"></div>
+                            </div>
+                        </div>
+
+                        <!-- AI Assistant -->
+                        <div class="bottom-card">
+                            <div class="bottom-card-header">
+                                <h2 class="bottom-card-title">AI Assistant</h2>
+                                <span class="badge purple">AI</span>
+                            </div>
+                            <div class="bottom-card-body">
+                                <p class="subtle">AI-powered insights and analysis will appear here.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
+                <!-- Signals Page -->
                 <div class="page" id="page-signals">
-                <section class="signal-grid" id="section-signals">
-                    <article class="panel signal-panel">
-                        <p class="label">Live Signal</p>
-                        <div class="flag-row">
-                            <div class="signal-value" id="signal">HOLD</div>
-                        </div>
-                        <div class="confidence">
-                            <span>Confidence</span>
-                            <strong id="confidence">0%</strong>
-                        </div>
-                        <div class="led-meter" aria-hidden="true"></div>
-                        <div class="probability-breakdown" id="probabilityBreakdown">
-                            <div class="probability-row" data-side="buy">
-                                <span>Buy</span>
-                                <div class="probability-track"><div class="probability-fill" id="probBuyFill"></div></div>
-                                <strong id="probBuy">0%</strong>
+                    <section class="signal-grid" id="section-signals">
+                        <article class="panel signal-panel">
+                            <p class="label">Live Signal</p>
+                            <div class="flag-row">
+                                <div class="signal-value" id="signal-page" data-signal="hold">HOLD</div>
                             </div>
-                            <div class="probability-row" data-side="wait">
-                                <span>Wait</span>
-                                <div class="probability-track"><div class="probability-fill" id="probWaitFill"></div></div>
-                                <strong id="probWait">100%</strong>
+                            <div class="confidence">
+                                <span>Confidence</span>
+                                <strong id="confidence-page">0%</strong>
                             </div>
-                            <div class="probability-row" data-side="sell">
-                                <span>Sell</span>
-                                <div class="probability-track"><div class="probability-fill" id="probSellFill"></div></div>
-                                <strong id="probSell">0%</strong>
+                            <div class="led-meter" aria-hidden="true"></div>
+                            <div class="probability-breakdown" id="probabilityBreakdown-page">
+                                <div class="probability-row" data-side="buy">
+                                    <span>Buy</span>
+                                    <div class="probability-track"><div class="probability-fill" id="probBuyFill-page"></div></div>
+                                    <strong id="probBuy-page">0%</strong>
+                                </div>
+                                <div class="probability-row" data-side="wait">
+                                    <span>Wait</span>
+                                    <div class="probability-track"><div class="probability-fill" id="probWaitFill-page"></div></div>
+                                    <strong id="probWait-page">100%</strong>
+                                </div>
+                                <div class="probability-row" data-side="sell">
+                                    <span>Sell</span>
+                                    <div class="probability-track"><div class="probability-fill" id="probSellFill-page"></div></div>
+                                    <strong id="probSell-page">0%</strong>
+                                </div>
                             </div>
-                        </div>
-                        <p class="reason" id="reason">Collecting candles</p>
-                    </article>
+                            <p class="reason" id="reason-page">Collecting candles</p>
+                        </article>
 
-                    <article class="panel">
-                        <p class="label">Last Price</p>
-                        <div class="metric" id="price">--</div>
-                        <p class="subtle"><span id="candleCount">0</span> candles loaded</p>
-                    </article>
+                        <article class="panel">
+                            <p class="label">Last Price</p>
+                            <div class="metric" id="price">--</div>
+                            <p class="subtle"><span id="candleCount">0</span> candles loaded</p>
+                        </article>
 
-                    <article class="panel">
-                        <p class="label">Support</p>
-                        <div class="metric" id="support">--</div>
-                    </article>
+                        <article class="panel">
+                            <p class="label">Support</p>
+                            <div class="metric" id="support">--</div>
+                        </article>
 
-                    <article class="panel">
-                        <p class="label">Resistance</p>
-                        <div class="metric" id="resistance">--</div>
-                    </article>
-                </section>
+                        <article class="panel">
+                            <p class="label">Resistance</p>
+                            <div class="metric" id="resistance">--</div>
+                        </article>
+                    </section>
                 </div>
 
+                <!-- Market Page -->
                 <div class="page" id="page-market">
-                <div class="market-overview-block" id="section-market">
-                    <section class="chart-section">
-                        <canvas id="chart" aria-label="Live closing price chart"></canvas>
-                    </section>
+                    <div class="market-overview-block" id="section-market">
+                        <section class="chart-section">
+                            <canvas id="chart-market" aria-label="Market overview chart"></canvas>
+                        </section>
 
-                    <section class="data-strip">
-                        <div class="data-cell"><span>RSI</span><strong id="rsi">--</strong></div>
-                        <div class="data-cell"><span>ADX</span><strong id="adx">--</strong></div>
-                        <div class="data-cell"><span>MACD Hist</span><strong id="macd">--</strong></div>
-                        <div class="data-cell"><span>Pattern</span><strong id="pattern">none</strong></div>
-                        <div class="data-cell"><span>Strategy</span><strong id="strategyName">Balanced</strong></div>
-                        <div class="data-cell"><span>Quality</span><strong id="quality">--</strong></div>
-                        <div class="data-cell"><span>Volatility</span><strong id="volatility">--</strong></div>
-                        <div class="data-cell"><span>Volume</span><strong id="volumeRatio">--</strong></div>
-                        <div class="data-cell"><span>Daily Trend</span><strong id="htfTrend">--</strong></div>
-                        <div class="data-cell"><span>Entry</span><strong id="entryPrice">--</strong></div>
-                        <div class="data-cell"><span>Stop</span><strong id="stopLoss">--</strong></div>
-                        <div class="data-cell"><span>TP1</span><strong id="takeProfit1">--</strong></div>
-                        <div class="data-cell"><span>TP2</span><strong id="takeProfit">--</strong></div>
-                        <div class="data-cell"><span>R:R</span><strong id="riskReward">--</strong></div>
-                    </section>
-                </div>
+                        <section class="data-strip" style="margin-top: var(--sp-4);">
+                            <div class="data-cell"><span>RSI</span><strong id="rsi-market">--</strong></div>
+                            <div class="data-cell"><span>ADX</span><strong id="adx-market">--</strong></div>
+                            <div class="data-cell"><span>MACD Hist</span><strong id="macd-market">--</strong></div>
+                            <div class="data-cell"><span>Pattern</span><strong id="pattern-market">none</strong></div>
+                            <div class="data-cell"><span>Strategy</span><strong id="strategyName-market">Balanced</strong></div>
+                            <div class="data-cell"><span>Quality</span><strong id="quality-market">--</strong></div>
+                            <div class="data-cell"><span>Volatility</span><strong id="volatility-market">--</strong></div>
+                            <div class="data-cell"><span>Volume</span><strong id="volumeRatio-market">--</strong></div>
+                            <div class="data-cell"><span>Daily Trend</span><strong id="htfTrend-market">--</strong></div>
+                            <div class="data-cell"><span>Entry</span><strong id="entryPrice-market">--</strong></div>
+                            <div class="data-cell"><span>Stop</span><strong id="stopLoss-market">--</strong></div>
+                            <div class="data-cell"><span>TP1</span><strong id="takeProfit1-market">--</strong></div>
+                            <div class="data-cell"><span>TP2</span><strong id="takeProfit-market">--</strong></div>
+                            <div class="data-cell"><span>R:R</span><strong id="riskReward-market">--</strong></div>
+                        </section>
+                    </div>
                 </div>
 
+                <!-- Execution Page -->
                 <div class="page" id="page-execution">
-                <div id="section-execution">
-                    <section class="demo-account-panel">
-                        <div class="section-head">
-                            <div>
-                                <p class="label">Persisted · Broker-Style</p>
-                                <h2>Demo Account</h2>
+                    <div id="section-execution">
+                        <section class="demo-account-panel">
+                            <div class="section-head">
+                                <div>
+                                    <p class="label">Persisted · Broker-Style</p>
+                                    <h2>Demo Account</h2>
+                                </div>
+                                <button id="demoResetBtn" type="button">Reset</button>
                             </div>
-                            <button id="demoResetBtn" type="button">Reset</button>
-                        </div>
-                        <p class="subtle">Starts at $10,000. Every signal you take through Trade Now or Auto mode opens a real demo position here — balance, equity, and win rate update the moment it closes.</p>
-                        <div class="demo-account-stats">
-                            <div class="demo-stat">
-                                <span>Balance</span>
-                                <strong id="demoBalance">$10,000.00</strong>
+                            <p class="subtle">Starts at $10,000. Every signal you take through Trade Now or Auto mode opens a real demo position here — balance, equity, and win rate update the moment it closes.</p>
+                            <div class="demo-account-stats">
+                                <div class="demo-stat">
+                                    <span>Balance</span>
+                                    <strong id="demoBalance">$10,000.00</strong>
+                                </div>
+                                <div class="demo-stat">
+                                    <span>Equity</span>
+                                    <strong id="demoEquity">$10,000.00</strong>
+                                </div>
+                                <div class="demo-stat">
+                                    <span>Margin Used</span>
+                                    <strong id="demoMarginUsed">$0.00</strong>
+                                </div>
+                                <div class="demo-stat">
+                                    <span>Free Margin</span>
+                                    <strong id="demoFreeMargin">$10,000.00</strong>
+                                </div>
+                                <div class="demo-stat">
+                                    <span>Win Rate</span>
+                                    <strong id="demoWinRate">0%</strong>
+                                </div>
+                                <div class="demo-stat">
+                                    <span>Trades</span>
+                                    <strong id="demoTrades">0</strong>
+                                </div>
+                                <div class="demo-stat">
+                                    <span>Net P/L</span>
+                                    <strong id="demoNetProfit">+$0.00</strong>
+                                </div>
                             </div>
-                            <div class="demo-stat">
-                                <span>Equity</span>
-                                <strong id="demoEquity">$10,000.00</strong>
-                            </div>
-                            <div class="demo-stat">
-                                <span>Margin Used</span>
-                                <strong id="demoMarginUsed">$0.00</strong>
-                            </div>
-                            <div class="demo-stat">
-                                <span>Free Margin</span>
-                                <strong id="demoFreeMargin">$10,000.00</strong>
-                            </div>
-                            <div class="demo-stat">
-                                <span>Win Rate</span>
-                                <strong id="demoWinRate">0%</strong>
-                            </div>
-                            <div class="demo-stat">
-                                <span>Trades</span>
-                                <strong id="demoTrades">0</strong>
-                            </div>
-                            <div class="demo-stat">
-                                <span>Net P/L</span>
-                                <strong id="demoNetProfit">+$0.00</strong>
-                            </div>
-                        </div>
-                    </section>
+                        </section>
 
-                    <section class="trading-grid">
-                    <article class="panel controls-panel">
-                        <div class="section-head">
-                            <div>
-                                <p class="label">Execution</p>
-                                <h2>Trade Controls</h2>
-                            </div>
-                            <label class="switch">
-                                <input id="autoTrade" type="checkbox">
-                                <span></span>
-                                <strong>Auto</strong>
-                            </label>
-                        </div>
+                        <section class="trading-grid">
+                            <article class="panel controls-panel">
+                                <div class="section-head">
+                                    <div>
+                                        <p class="label">Execution</p>
+                                        <h2>Trade Controls</h2>
+                                    </div>
+                                    <label class="switch">
+                                        <input id="autoTrade" type="checkbox">
+                                        <span></span>
+                                        <strong>Auto</strong>
+                                    </label>
+                                </div>
 
-                        <fieldset class="mode-picker" aria-label="Trading mode">
-                            <label>
-                                <input type="radio" name="tradeMode" value="dry-run" checked>
-                                <span>Dry Run</span>
-                            </label>
-                            <label>
-                                <input type="radio" name="tradeMode" value="paper">
-                                <span>Paper</span>
-                            </label>
-                            <label>
-                                <input type="radio" name="tradeMode" value="live">
-                                <span>Live</span>
-                            </label>
-                        </fieldset>
+                                <fieldset class="mode-picker" aria-label="Trading mode">
+                                    <label>
+                                        <input type="radio" name="tradeMode" value="dry-run" checked>
+                                        <span>Dry Run</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="tradeMode" value="paper">
+                                        <span>Paper</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="tradeMode" value="live">
+                                        <span>Live</span>
+                                    </label>
+                                </fieldset>
 
-                        <div class="form-grid">
-                            <label>
-                                <span>Trade size</span>
-                                <input id="tradeSize" type="number" min="0.0001" step="0.0001" value="0.001">
-                            </label>
-                            <label>
-                                <span>Max loss</span>
-                                <input id="maxLoss" type="number" min="1" step="1" value="25">
-                            </label>
-                            <label>
-                                <span>Cooldown sec</span>
-                                <input id="cooldown" type="number" min="0" step="5" value="60">
-                            </label>
-                            <label>
-                                <span>Min confidence</span>
-                                <input id="minConfidence" type="number" min="1" max="100" step="1" value="70">
-                            </label>
-                            <label>
-                                <span>Account size</span>
-                                <input id="accountSize" type="number" min="0" step="100" value="1000">
-                            </label>
-                            <label>
-                                <span>Risk % / trade</span>
-                                <input id="riskPercent" type="number" min="0" max="100" step="0.25" value="1">
-                            </label>
-                        </div>
+                                <div class="form-grid">
+                                    <label>
+                                        <span>Trade size</span>
+                                        <input id="tradeSize" type="number" min="0.0001" step="0.0001" value="0.001">
+                                    </label>
+                                    <label>
+                                        <span>Max loss</span>
+                                        <input id="maxLoss" type="number" min="1" step="1" value="25">
+                                    </label>
+                                    <label>
+                                        <span>Cooldown sec</span>
+                                        <input id="cooldown" type="number" min="0" step="5" value="60">
+                                    </label>
+                                    <label>
+                                        <span>Min confidence</span>
+                                        <input id="minConfidence" type="number" min="1" max="100" step="1" value="70">
+                                    </label>
+                                    <label>
+                                        <span>Account size</span>
+                                        <input id="accountSize" type="number" min="0" step="100" value="1000">
+                                    </label>
+                                    <label>
+                                        <span>Risk % / trade</span>
+                                        <input id="riskPercent" type="number" min="0" max="100" step="0.25" value="1">
+                                    </label>
+                                </div>
 
-                        <label class="switch risk-sizing-toggle">
-                            <input id="useRiskSizing" type="checkbox">
-                            <span></span>
-                            <strong>Size by ATR risk (overrides Trade size)</strong>
-                        </label>
-
-                        <div class="execution-status" id="executionStatus">Manual mode</div>
-
-                        <div class="manual-trade-row">
-                            <button id="tradeNowBtn" type="button" class="trade-now-btn">Trade Now</button>
-                            <button id="closePaperBtn" type="button" class="close-btn">Close Position</button>
-                        </div>
-
-                        <div class="trade-result" id="tradeResult" hidden>
-                            <span class="trade-result-label">Last Trade</span>
-                            <div class="trade-result-body" id="tradeResultBody"></div>
-                        </div>
-                    </article>
-
-                    <article class="panel paper-panel">
-                        <p class="label">Paper Account</p>
-                        <div class="paper-stats">
-                            <div>
-                                <span>Position</span>
-                                <strong id="paperPosition">Flat</strong>
-                            </div>
-                            <div>
-                                <span>Entry</span>
-                                <strong id="paperEntry">--</strong>
-                            </div>
-                            <div>
-                                <span>P/L</span>
-                                <strong id="paperPnl">0.00</strong>
-                            </div>
-                            <div>
-                                <span>Stop</span>
-                                <strong id="paperStop">--</strong>
-                            </div>
-                            <div>
-                                <span>Target</span>
-                                <strong id="paperTarget">--</strong>
-                            </div>
-                        </div>
-                    </article>
-                    </section>
-                </div>
-
-                <section class="panel decision-panel" id="section-decision">
-                    <div class="section-head">
-                        <div>
-                            <p class="label">Live Read</p>
-                            <h2>Decision Checklist</h2>
-                        </div>
-                    </div>
-                    <p class="subtle">What the current signal is actually seeing, condition by condition — not every strategy uses every check, so items only light up when they apply.</p>
-                    <div id="decisionChecklist"></div>
-                </section>
-                </div>
-
-                <div class="page" id="page-journal">
-                <section class="journal-section" id="section-journal">
-                    <div class="section-head">
-                        <div>
-                            <p class="label">Demo Account</p>
-                            <h2>Trade Journal</h2>
-                        </div>
-                        <button id="clearJournalBtn" type="button">Clear</button>
-                    </div>
-                    <p class="subtle">A plain-English note for every closed demo trade — strategy, confidence, entry/exit, and why it closed.</p>
-                    <div class="journal-list" id="journalList"></div>
-
-                    <div class="section-head journal-history-head">
-                        <div>
-                            <p class="label">Recent</p>
-                            <h2>Closed Trades</h2>
-                        </div>
-                    </div>
-                    <div class="history-list" id="demoHistoryList"></div>
-                </section>
-                </div>
-
-                <div class="page" id="page-lab">
-                <section class="lab-section" id="section-lab">
-                    <div class="section-head">
-                        <div>
-                            <p class="label">Historical Replay</p>
-                            <h2>Backtest</h2>
-                        </div>
-                    </div>
-                    <p class="subtle">Fetches real historical candles and replays them through the same signal engine the live app uses, one candle at a time, with no lookahead. Faster than waiting on live candles to accumulate — this is a separate, disposable run, it never touches your live Strategy Lab or Demo Account data below.</p>
-
-                    <div class="backtest-controls">
-                        <label>
-                            <span>Pair</span>
-                            <select id="backtestSymbol">
-                                <optgroup label="Crypto (Binance)">
-                                <option value="btcusdt" data-asset-class="crypto" selected>BTC/USDT</option>
-                                <option value="ethusdt" data-asset-class="crypto">ETH/USDT</option>
-                                <option value="bnbusdt" data-asset-class="crypto">BNB/USDT</option>
-                                <option value="solusdt" data-asset-class="crypto">SOL/USDT</option>
-                                <option value="xrpusdt" data-asset-class="crypto">XRP/USDT</option>
-                                <option value="adausdt" data-asset-class="crypto">ADA/USDT</option>
-                                <option value="dogeusdt" data-asset-class="crypto">DOGE/USDT</option>
-                                </optgroup>
-                                <optgroup label="Forex (Twelve Data)">
-                                <option value="eurusd" data-asset-class="forex">EUR/USD</option>
-                                <option value="gbpusd" data-asset-class="forex">GBP/USD</option>
-                                <option value="usdjpy" data-asset-class="forex">USD/JPY</option>
-                                <option value="audusd" data-asset-class="forex">AUD/USD</option>
-                                <option value="usdcad" data-asset-class="forex">USD/CAD</option>
-                                <option value="usdchf" data-asset-class="forex">USD/CHF</option>
-                                <option value="nzdusd" data-asset-class="forex">NZD/USD</option>
-                                </optgroup>
-                            </select>
-                        </label>
-                        <label>
-                            <span>Interval</span>
-                            <select id="backtestInterval">
-                                <option value="1m" selected>1m</option>
-                                <option value="5m">5m</option>
-                                <option value="15m">15m</option>
-                                <option value="1h">1h</option>
-                            </select>
-                        </label>
-                        <label>
-                            <span>Strategy</span>
-                            <select id="backtestStrategy">
-                                <option value="all" selected>All Strategies</option>
-                                <option value="balanced">Balanced</option>
-                                <option value="trend">Trend Follow</option>
-                                <option value="meanReversion">Mean Reversion</option>
-                                <option value="breakout">Breakout</option>
-                                <option value="scalping">Scalping</option>
-                                <option value="pullback">Pullback (Fib)</option>
-                                <option value="momentum">Momentum</option>
-                                <option value="range">Range Trading</option>
-                                <option value="ema165SarRoc">EMA165 SAR ROC21</option>
-                                <option value="trendFollowing2">Trend Following 2 (EMA 50/200)</option>
-                                <option value="breakout2">Breakout 2 (Volume Confirmed)</option>
-                                <option value="meanReversion2">Mean Reversion 2 (RSI Range)</option>
-                                <option value="emaPullbackAdx">EMA Pullback (ADX Filter)</option>
-                                <option value="aiConfidence">AI Confidence Pipeline</option>
-                            </select>
-                        </label>
-                        <label>
-                            <span>Lookback</span>
-                            <select id="backtestLookback">
-                                <option value="500">500 candles</option>
-                                <option value="1000" selected>1,000 candles</option>
-                                <option value="2000">2,000 candles</option>
-                                <option value="3000">3,000 candles</option>
-                            </select>
-                        </label>
-                        <label>
-                            <span>Payout</span>
-                            <input type="number" id="backtestPayout" min="0" max="1" step="0.01" value="0.85">
-                        </label>
-                        <button id="backtestRunBtn" type="button">Run Backtest</button>
-                    </div>
-                    <p class="subtle" id="backtestStatus">Pick a pair, interval and lookback, then run.</p>
-
-                    <div class="lab-tables">
-                        <div class="lab-table-wrap">
-                            <p class="label">Backtest · Spot-Style Leaderboard</p>
-                            <table class="lab-table">
-                                <thead>
-                                    <tr><th>Strategy</th><th>Trades</th><th>Win %</th><th>Total PnL</th><th>Avg PnL</th><th>Max Drawdown</th></tr>
-                                </thead>
-                                <tbody id="backtestLeaderboardBody"><tr><td class="empty-history" colspan="6">No backtest run yet.</td></tr></tbody>
-                            </table>
-                        </div>
-
-                        <div class="lab-table-wrap">
-                            <p class="label">Backtest · Binary Mode (per-strategy, per-expiry)</p>
-                            <table class="lab-table">
-                                <thead>
-                                    <tr><th>Strategy</th><th>Expiry</th><th>Trades</th><th>Win %</th><th>Breakeven</th><th>Edge</th><th>Verdict</th></tr>
-                                </thead>
-                                <tbody id="backtestBinaryBody"><tr><td class="empty-history" colspan="7">No backtest run yet.</td></tr></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="lab-section" id="section-lab-live">
-                    <div class="section-head">
-                        <div>
-                            <p class="label">Demo Account · All Strategies</p>
-                            <h2>Strategy Lab</h2>
-                        </div>
-                        <button id="testerReset" type="button">Reset</button>
-                    </div>
-                    <p class="subtle">Every strategy runs its own simulated position in parallel on this pair, flipping on opposite signals. Nothing here touches the live execution panel above.</p>
-
-                    <div class="lab-tables">
-                        <div class="lab-table-wrap">
-                            <p class="label">Leaderboard</p>
-                            <table class="lab-table">
-                                <thead>
-                                    <tr><th>Strategy</th><th>Trades</th><th>Win %</th><th>Total PnL</th><th>Avg PnL</th></tr>
-                                </thead>
-                                <tbody id="testerBody"></tbody>
-                            </table>
-                        </div>
-
-                        <div class="lab-table-wrap">
-                            <p class="label">Demo Account · Real Trades</p>
-                            <table class="lab-table">
-                                <thead>
-                                    <tr><th>Strategy</th><th>Trades</th><th>Win %</th><th>Total P/L</th><th>Avg P/L</th></tr>
-                                </thead>
-                                <tbody id="demoLeaderboardBody"></tbody>
-                            </table>
-                        </div>
-
-                        <div class="lab-table-wrap">
-                            <p class="label">By Market Condition</p>
-                            <table class="lab-table">
-                                <thead>
-                                    <tr><th>Strategy</th><th>Condition</th><th>Trades</th><th>Win %</th><th>Total PnL</th></tr>
-                                </thead>
-                                <tbody id="regimeBody"></tbody>
-                            </table>
-                        </div>
-
-                        <div class="lab-table-wrap">
-                            <p class="label">By Session</p>
-                            <table class="lab-table">
-                                <thead>
-                                    <tr><th>Strategy</th><th>Session</th><th>Trades</th><th>Win %</th><th>Total PnL</th></tr>
-                                </thead>
-                                <tbody id="sessionBody"></tbody>
-                            </table>
-                        </div>
-
-                        <div class="lab-table-wrap">
-                            <div class="lab-table-head-row">
-                                <p class="label">Binary Mode (per-strategy, per-expiry)</p>
-                                <label class="payout-input">
-                                    Payout
-                                    <input type="number" id="payoutRatioInput" min="0" max="1" step="0.01" value="0.85">
+                                <label class="switch risk-sizing-toggle">
+                                    <input id="useRiskSizing" type="checkbox">
+                                    <span></span>
+                                    <strong>Size by ATR risk (overrides Trade size)</strong>
                                 </label>
+
+                                <div class="execution-status" id="executionStatus">Manual mode</div>
+
+                                <div class="manual-trade-row">
+                                    <button id="tradeNowBtn" type="button" class="trade-now-btn">Trade Now</button>
+                                    <button id="closePaperBtn" type="button" class="close-btn">Close Position</button>
+                                </div>
+
+                                <div class="trade-result" id="tradeResult" hidden>
+                                    <span class="trade-result-label">Last Trade</span>
+                                    <div class="trade-result-body" id="tradeResultBody"></div>
+                                </div>
+                            </article>
+
+                            <article class="panel paper-panel">
+                                <p class="label">Paper Account</p>
+                                <div class="paper-stats">
+                                    <div>
+                                        <span>Position</span>
+                                        <strong id="paperPosition">Flat</strong>
+                                    </div>
+                                    <div>
+                                        <span>Entry</span>
+                                        <strong id="paperEntry">--</strong>
+                                    </div>
+                                    <div>
+                                        <span>P/L</span>
+                                        <strong id="paperPnl">0.00</strong>
+                                    </div>
+                                    <div>
+                                        <span>Stop</span>
+                                        <strong id="paperStop">--</strong>
+                                    </div>
+                                    <div>
+                                        <span>Target</span>
+                                        <strong id="paperTarget">--</strong>
+                                    </div>
+                                </div>
+                            </article>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Journal Page -->
+                <div class="page" id="page-journal">
+                    <section class="journal-section" id="section-journal">
+                        <div class="section-head">
+                            <div>
+                                <p class="label">Demo Account</p>
+                                <h2>Trade Journal</h2>
                             </div>
-                            <table class="lab-table">
-                                <thead>
-                                    <tr><th>Strategy</th><th>Expiry</th><th>Trades</th><th>Win %</th><th>Breakeven</th><th>Edge</th><th>Verdict</th></tr>
-                                </thead>
-                                <tbody id="binaryStatsBody"></tbody>
-                            </table>
+                            <button id="clearJournalBtn" type="button">Clear</button>
                         </div>
+                        <p class="subtle">A plain-English note for every closed demo trade — strategy, confidence, entry/exit, and why it closed.</p>
+                        <div class="journal-list" id="journalList"></div>
 
-                        <div class="lab-table-wrap">
-                            <p class="label">By Asset</p>
-                            <table class="lab-table">
-                                <thead>
-                                    <tr><th>Pair</th><th>Trades</th><th>Win %</th><th>Total PnL</th><th>Avg PnL</th></tr>
-                                </thead>
-                                <tbody id="assetBody"></tbody>
-                            </table>
+                        <div class="section-head journal-history-head">
+                            <div>
+                                <p class="label">Recent</p>
+                                <h2>Closed Trades</h2>
+                            </div>
                         </div>
-                    </div>
-                </section>
-
-                </section>
+                        <div class="history-list" id="demoHistoryList"></div>
+                    </section>
                 </div>
 
+                <!-- Lab Page -->
+                <div class="page" id="page-lab">
+                    <section class="lab-section" id="section-lab">
+                        <div class="section-head">
+                            <div>
+                                <p class="label">Historical Replay</p>
+                                <h2>Backtest</h2>
+                            </div>
+                        </div>
+                        <p class="subtle">Fetches real historical candles and replays them through the same signal engine the live app uses, one candle at a time, with no lookahead. Faster than waiting on live candles to accumulate — this is a separate, disposable run, it never touches your live Strategy Lab or Demo Account data below.</p>
+
+                        <div class="backtest-controls">
+                            <label>
+                                <span>Pair</span>
+                                <select id="backtestSymbol">
+                                    <optgroup label="Crypto (Binance)">
+                                    <option value="btcusdt" data-asset-class="crypto" selected>BTC/USDT</option>
+                                    <option value="ethusdt" data-asset-class="crypto">ETH/USDT</option>
+                                    <option value="bnbusdt" data-asset-class="crypto">BNB/USDT</option>
+                                    <option value="solusdt" data-asset-class="crypto">SOL/USDT</option>
+                                    <option value="xrpusdt" data-asset-class="crypto">XRP/USDT</option>
+                                    <option value="adausdt" data-asset-class="crypto">ADA/USDT</option>
+                                    <option value="dogeusdt" data-asset-class="crypto">DOGE/USDT</option>
+                                    </optgroup>
+                                    <optgroup label="Forex (Twelve Data)">
+                                    <option value="eurusd" data-asset-class="forex">EUR/USD</option>
+                                    <option value="gbpusd" data-asset-class="forex">GBP/USD</option>
+                                    <option value="usdjpy" data-asset-class="forex">USD/JPY</option>
+                                    <option value="audusd" data-asset-class="forex">AUD/USD</option>
+                                    <option value="usdcad" data-asset-class="forex">USD/CAD</option>
+                                    <option value="usdchf" data-asset-class="forex">USD/CHF</option>
+                                    <option value="nzdusd" data-asset-class="forex">NZD/USD</option>
+                                    </optgroup>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Interval</span>
+                                <select id="backtestInterval">
+                                    <option value="1m" selected>1m</option>
+                                    <option value="5m">5m</option>
+                                    <option value="15m">15m</option>
+                                    <option value="1h">1h</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Strategy</span>
+                                <select id="backtestStrategy">
+                                    <option value="all" selected>All Strategies</option>
+                                    <option value="balanced">Balanced</option>
+                                    <option value="trend">Trend Follow</option>
+                                    <option value="meanReversion">Mean Reversion</option>
+                                    <option value="breakout">Breakout</option>
+                                    <option value="scalping">Scalping</option>
+                                    <option value="pullback">Pullback (Fib)</option>
+                                    <option value="momentum">Momentum</option>
+                                    <option value="range">Range Trading</option>
+                                    <option value="ema165SarRoc">EMA165 SAR ROC21</option>
+                                    <option value="trendFollowing2">Trend Following 2 (EMA 50/200)</option>
+                                    <option value="breakout2">Breakout 2 (Volume Confirmed)</option>
+                                    <option value="meanReversion2">Mean Reversion 2 (RSI Range)</option>
+                                    <option value="emaPullbackAdx">EMA Pullback (ADX Filter)</option>
+                                    <option value="aiConfidence">AI Confidence Pipeline</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Lookback</span>
+                                <select id="backtestLookback">
+                                    <option value="500">500 candles</option>
+                                    <option value="1000" selected>1,000 candles</option>
+                                    <option value="2000">2,000 candles</option>
+                                    <option value="3000">3,000 candles</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Payout</span>
+                                <input type="number" id="backtestPayout" min="0" max="1" step="0.01" value="0.85">
+                            </label>
+                            <button id="backtestRunBtn" type="button">Run Backtest</button>
+                        </div>
+                        <p class="subtle" id="backtestStatus">Pick a pair, interval and lookback, then run.</p>
+
+                        <div class="lab-tables">
+                            <div class="lab-table-wrap">
+                                <p class="label">Backtest · Spot-Style Leaderboard</p>
+                                <table class="lab-table">
+                                    <thead>
+                                        <tr><th>Strategy</th><th>Trades</th><th>Win %</th><th>Total PnL</th><th>Avg PnL</th><th>Max Drawdown</th></tr>
+                                    </thead>
+                                    <tbody id="backtestLeaderboardBody"><tr><td class="empty-history" colspan="6">No backtest run yet.</td></tr></tbody>
+                                </table>
+                            </div>
+
+                            <div class="lab-table-wrap">
+                                <p class="label">Backtest · Binary Mode (per-strategy, per-expiry)</p>
+                                <table class="lab-table">
+                                    <thead>
+                                        <tr><th>Strategy</th><th>Expiry</th><th>Trades</th><th>Win %</th><th>Breakeven</th><th>Edge</th><th>Verdict</th></tr>
+                                    </thead>
+                                    <tbody id="backtestBinaryBody"><tr><td class="empty-history" colspan="7">No backtest run yet.</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="lab-section" id="section-lab-live">
+                        <div class="section-head">
+                            <div>
+                                <p class="label">Demo Account · All Strategies</p>
+                                <h2>Strategy Lab</h2>
+                            </div>
+                            <button id="testerReset" type="button">Reset</button>
+                        </div>
+                        <p class="subtle">Every strategy runs its own simulated position in parallel on this pair, flipping on opposite signals. Nothing here touches the live execution panel above.</p>
+
+                        <div class="lab-tables">
+                            <div class="lab-table-wrap">
+                                <p class="label">Leaderboard</p>
+                                <table class="lab-table">
+                                    <thead>
+                                        <tr><th>Strategy</th><th>Trades</th><th>Win %</th><th>Total PnL</th><th>Avg PnL</th></tr>
+                                    </thead>
+                                    <tbody id="testerBody"></tbody>
+                                </table>
+                            </div>
+
+                            <div class="lab-table-wrap">
+                                <p class="label">Demo Account · Real Trades</p>
+                                <table class="lab-table">
+                                    <thead>
+                                        <tr><th>Strategy</th><th>Trades</th><th>Win %</th><th>Total P/L</th><th>Avg P/L</th></tr>
+                                    </thead>
+                                    <tbody id="demoLeaderboardBody"></tbody>
+                                </table>
+                            </div>
+
+                            <div class="lab-table-wrap">
+                                <p class="label">By Market Condition</p>
+                                <table class="lab-table">
+                                    <thead>
+                                        <tr><th>Strategy</th><th>Condition</th><th>Trades</th><th>Win %</th><th>Total PnL</th></tr>
+                                    </thead>
+                                    <tbody id="regimeBody"></tbody>
+                                </table>
+                            </div>
+
+                            <div class="lab-table-wrap">
+                                <p class="label">By Session</p>
+                                <table class="lab-table">
+                                    <thead>
+                                        <tr><th>Strategy</th><th>Session</th><th>Trades</th><th>Win %</th><th>Total PnL</th></tr>
+                                    </thead>
+                                    <tbody id="sessionBody"></tbody>
+                                </table>
+                            </div>
+
+                            <div class="lab-table-wrap">
+                                <div class="lab-table-head-row">
+                                    <p class="label">Binary Mode (per-strategy, per-expiry)</p>
+                                    <label class="payout-input">
+                                        Payout
+                                        <input type="number" id="payoutRatioInput" min="0" max="1" step="0.01" value="0.85">
+                                    </label>
+                                </div>
+                                <table class="lab-table">
+                                    <thead>
+                                        <tr><th>Strategy</th><th>Expiry</th><th>Trades</th><th>Win %</th><th>Breakeven</th><th>Edge</th><th>Verdict</th></tr>
+                                    </thead>
+                                    <tbody id="binaryStatsBody"></tbody>
+                                </table>
+                            </div>
+
+                            <div class="lab-table-wrap">
+                                <p class="label">By Asset</p>
+                                <table class="lab-table">
+                                    <thead>
+                                        <tr><th>Pair</th><th>Trades</th><th>Win %</th><th>Total PnL</th><th>Avg PnL</th></tr>
+                                    </thead>
+                                    <tbody id="assetBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- History Page -->
                 <div class="page" id="page-history">
-                <section class="history-section" id="section-history">
-                    <div class="section-head">
-                        <div>
-                            <p class="label">Session</p>
-                            <h2>Signal History</h2>
+                    <section class="history-section" id="section-history">
+                        <div class="section-head">
+                            <div>
+                                <p class="label">Session</p>
+                                <h2>Signal History</h2>
+                            </div>
+                            <button id="clearHistory" type="button">Clear</button>
                         </div>
-                        <button id="clearHistory" type="button">Clear</button>
-                    </div>
-                    <div class="history-list" id="historyList"></div>
-                </section>
+                        <div class="history-list" id="historyList"></div>
+                    </section>
                 </div>
+
                 <div class="page" id="page-live-reports">
                     <section class="panel live-reports-panel">
                         <div class="section-head">

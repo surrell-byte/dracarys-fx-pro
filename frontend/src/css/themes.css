@@ -3,130 +3,204 @@
    Each theme overrides the base tokens from variables.css. Buy/sell stay in
    the green/red family in every theme on purpose — a trader scanning for a
    BUY vs SELL signal shouldn't have to re-learn color meaning when they
-   switch skins. Only the "accent" (--amber/--amber-dim/--amber-rgb, which
-   also drives --line/--line-strong and the HOLD signal color) and the
-   surface/text tones change per theme.
+   switch skins. Only the "accent" (primary), surface/text tones change per theme.
    ========================================================================== */
+
+/* ---------- Playful Blue (Default) ---------- */
+
+:root[data-theme="playful-blue"] {
+    --primary: #2563EB;
+    --primary-hover: #1D4ED8;
+    --primary-pressed: #1E40AF;
+    --primary-rgb: 37, 99, 235;
+
+    --ink: #F8FAFC;
+    --ink-deep: #F1F5F9;
+    --panel: #FFFFFF;
+    --panel-soft: #FFFFFF;
+
+    --paper: #1E293B;
+    --steel: #64748B;
+    --steel-rgb: 100, 116, 139;
+
+    --buy: #22C55E;
+    --buy-rgb: 34, 197, 94;
+    --sell: #EF4444;
+    --sell-rgb: 239, 68, 68;
+
+    --line: #E2E8F0;
+    --line-strong: #CBD5E1;
+
+    --shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    --shadow-hover: 0 14px 30px rgba(15, 23, 42, 0.10);
+    --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.06);
+    --shadow-lg: 0 14px 30px rgba(15, 23, 42, 0.10);
+}
+
+/* ---------- Dark Classic ---------- */
 
 :root[data-theme="dark-classic"] {
     --ink: #0a0f0c;
     --ink-deep: #060907;
     --panel: #101613;
     --panel-soft: #141c18;
+
     --paper: #eef2ef;
     --steel: #8fa39a;
     --steel-rgb: 143, 163, 154;
-    --amber: #22c55e;
-    --amber-dim: #16a34a;
-    --amber-rgb: 34, 197, 94;
+
+    --primary: #22c55e;
+    --primary-hover: #16a34a;
+    --primary-pressed: #15803d;
+    --primary-rgb: 34, 197, 94;
+
     --buy: #22c55e;
     --buy-rgb: 34, 197, 94;
     --sell: #f87171;
     --sell-rgb: 248, 113, 113;
-    --line: rgba(var(--amber-rgb), 0.16);
-    --line-strong: rgba(var(--amber-rgb), 0.36);
+
+    --line: rgba(var(--steel-rgb), 0.12);
+    --line-strong: rgba(var(--steel-rgb), 0.24);
+
     --shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
     --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.28);
     --shadow-md: 0 14px 32px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
 }
 
+/* ---------- TradingView ---------- */
+
 :root[data-theme="tradingview"] {
     --ink: #0a0807;
     --ink-deep: #060504;
     --panel: #14110d;
     --panel-soft: #1a1611;
+
     --paper: #f3ead8;
     --steel: #9a8f7e;
     --steel-rgb: 154, 143, 126;
-    --amber: #ffb000;
-    --amber-dim: #b87f00;
-    --amber-rgb: 255, 176, 0;
+
+    --primary: #ffb000;
+    --primary-hover: #b87f00;
+    --primary-pressed: #9a6a00;
+    --primary-rgb: 255, 176, 0;
+
     --buy: #3ddc84;
     --buy-rgb: 61, 220, 132;
     --sell: #ff5c5c;
     --sell-rgb: 255, 92, 92;
 }
 
+/* ---------- Bloomberg ---------- */
+
 :root[data-theme="bloomberg"] {
     --ink: #000000;
     --ink-deep: #000000;
     --panel: #0d0d0d;
     --panel-soft: #141414;
+
     --paper: #ffe8b8;
     --steel: #8a8578;
     --steel-rgb: 138, 133, 120;
-    --amber: #ff9500;
-    --amber-dim: #cc7600;
-    --amber-rgb: 255, 149, 0;
+
+    --primary: #ff9500;
+    --primary-hover: #cc7600;
+    --primary-pressed: #b06500;
+    --primary-rgb: 255, 149, 0;
+
     --buy: #29d97a;
     --buy-rgb: 41, 217, 122;
     --sell: #ff4d4d;
     --sell-rgb: 255, 77, 77;
 }
 
+/* ---------- Matrix ---------- */
+
 :root[data-theme="matrix"] {
     --ink: #020402;
     --ink-deep: #000000;
     --panel: #061206;
     --panel-soft: #0a1a0a;
+
     --paper: #d6ffe0;
     --steel: #4f8f5f;
     --steel-rgb: 79, 143, 95;
-    --amber: #00ff66;
-    --amber-dim: #00b34a;
-    --amber-rgb: 0, 255, 102;
+
+    --primary: #00ff66;
+    --primary-hover: #00b34a;
+    --primary-pressed: #00913f;
+    --primary-rgb: 0, 255, 102;
+
     --buy: #39ff6e;
     --buy-rgb: 57, 255, 110;
     --sell: #ff3b3b;
     --sell-rgb: 255, 59, 59;
 }
 
+/* ---------- Cyberpunk ---------- */
+
 :root[data-theme="cyberpunk"] {
     --ink: #0b0116;
     --ink-deep: #05000d;
     --panel: #170b2e;
     --panel-soft: #1f0f3d;
+
     --paper: #f5e8ff;
     --steel: #9d7fc2;
     --steel-rgb: 157, 127, 194;
-    --amber: #ff2e88;
-    --amber-dim: #c2005e;
-    --amber-rgb: 255, 46, 136;
+
+    --primary: #ff2e88;
+    --primary-hover: #c2005e;
+    --primary-pressed: #a10050;
+    --primary-rgb: 255, 46, 136;
+
     --buy: #00f0c0;
     --buy-rgb: 0, 240, 192;
     --sell: #ff3860;
     --sell-rgb: 255, 56, 96;
 }
 
+/* ---------- Midnight ---------- */
+
 :root[data-theme="midnight"] {
     --ink: #050b1a;
     --ink-deep: #020611;
     --panel: #0d1830;
     --panel-soft: #122140;
+
     --paper: #e7eefc;
     --steel: #7c8db0;
     --steel-rgb: 124, 141, 176;
-    --amber: #4ba3ff;
-    --amber-dim: #2d6fc2;
-    --amber-rgb: 75, 163, 255;
+
+    --primary: #4ba3ff;
+    --primary-hover: #2d6fc2;
+    --primary-pressed: #255fab;
+    --primary-rgb: 75, 163, 255;
+
     --buy: #35e0a1;
     --buy-rgb: 53, 224, 161;
     --sell: #ff5c7a;
     --sell-rgb: 255, 92, 122;
 }
 
+/* ---------- Professional ---------- */
+
 :root[data-theme="professional"] {
     --ink: #0f1216;
     --ink-deep: #0a0c0f;
     --panel: #171b21;
     --panel-soft: #1d222a;
+
     --paper: #e8ecf1;
     --steel: #8894a3;
     --steel-rgb: 136, 148, 163;
-    --amber: #3b82f6;
-    --amber-dim: #2563c9;
-    --amber-rgb: 59, 130, 246;
+
+    --primary: #3b82f6;
+    --primary-hover: #2563c9;
+    --primary-pressed: #1d53b8;
+    --primary-rgb: 59, 130, 246;
+
     --buy: #22c55e;
     --buy-rgb: 34, 197, 94;
     --sell: #f43f5e;
@@ -137,109 +211,74 @@
 
 .signal-value[data-signal="buy"] {
     color: var(--buy);
-    text-shadow: 0 0 24px rgba(var(--buy-rgb), 0.3);
+    text-shadow: 0 0 20px rgba(var(--buy-rgb), 0.25);
 }
 
 .signal-value[data-signal="sell"] {
     color: var(--sell);
-    text-shadow: 0 0 24px rgba(var(--sell-rgb), 0.28);
+    text-shadow: 0 0 20px rgba(var(--sell-rgb), 0.25);
 }
 
 .signal-value[data-signal="hold"] {
-    color: var(--amber);
-    text-shadow: 0 0 24px rgba(var(--amber-rgb), 0.24);
+    color: var(--text-secondary);
 }
 
 .history-row strong[data-signal="buy"] { color: var(--buy); }
 .history-row strong[data-signal="sell"] { color: var(--sell); }
-.history-row strong[data-signal="hold"] { color: var(--amber); }
+.history-row strong[data-signal="hold"] { color: var(--text-secondary); }
 
 /* ---------- connection status ---------- */
 
 .status-pill {
     min-width: 128px;
-    padding: 9px 14px;
+    padding: var(--sp-2) var(--sp-3);
     border: 1px solid var(--line);
-    border-radius: 2px;
+    border-radius: var(--radius-search);
     background: var(--ink-deep);
-    color: var(--steel);
+    color: var(--text-secondary);
     text-align: center;
     font-family: var(--font-display);
-    font-size: 0.78rem;
+    font-size: var(--text-small);
+    font-weight: 600;
     letter-spacing: 0.04em;
+    transition: all var(--transition-fast);
 }
 
 .status-pill[data-status="connected"] {
-    color: var(--buy);
-    border-color: rgba(var(--buy-rgb), 0.4);
-    background: rgba(var(--buy-rgb), 0.06);
+    color: var(--success);
+    border-color: rgba(var(--success-rgb), 0.4);
+    background: rgba(var(--success-rgb), 0.08);
 }
 
 /* ---------- quality / trend indicators ---------- */
 
-#quality[data-quality="high"] { color: var(--buy); }
-#quality[data-quality="medium"] { color: var(--amber); }
-#quality[data-quality="low"] { color: var(--sell); }
+#quality[data-quality="high"] { color: var(--success); }
+#quality[data-quality="medium"] { color: var(--warning); }
+#quality[data-quality="low"] { color: var(--danger); }
 
-#htfTrend[data-trend="up"] { color: var(--buy); }
-#htfTrend[data-trend="down"] { color: var(--sell); }
-#htfTrend[data-trend="neutral"] { color: var(--steel); }
+#htfTrend[data-trend="up"] { color: var(--success); }
+#htfTrend[data-trend="down"] { color: var(--danger); }
+#htfTrend[data-trend="neutral"] { color: var(--text-secondary); }
 
 /* ---------- pnl coloring ---------- */
 
-#paperPnl[data-pnl="gain"] { color: var(--buy); }
-#paperPnl[data-pnl="loss"] { color: var(--sell); }
+#paperPnl[data-pnl="gain"] { color: var(--success); }
+#paperPnl[data-pnl="loss"] { color: var(--danger); }
 
-.lab-table td[data-pnl="gain"] { color: var(--buy); }
-.lab-table td[data-pnl="loss"] { color: var(--sell); }
-.lab-table td[data-pnl="flat"] { color: var(--steel); }
+.lab-table td[data-pnl="gain"] { color: var(--success); }
+.lab-table td[data-pnl="loss"] { color: var(--danger); }
+.lab-table td[data-pnl="flat"] { color: var(--text-secondary); }
 
 /* ---------- trade-result badges ---------- */
 
 .tr-buy   { color: var(--buy);   background: rgba(var(--buy-rgb), 0.08); }
 .tr-sell  { color: var(--sell);  background: rgba(var(--sell-rgb), 0.08); }
-.tr-skip  { color: var(--amber); background: rgba(var(--amber-rgb), 0.08); }
-.tr-close { color: var(--steel); background: rgba(var(--steel-rgb), 0.1); }
-.tr-error { color: var(--sell);  background: rgba(var(--sell-rgb), 0.08); }
-
-/* ---------- generic badges ---------- */
-
-.badge.green {
-    color: var(--buy);
-    border-color: rgba(var(--buy-rgb), 0.4);
-    background: rgba(var(--buy-rgb), 0.08);
-}
-
-.badge.red {
-    color: var(--sell);
-    border-color: rgba(var(--sell-rgb), 0.4);
-    background: rgba(var(--sell-rgb), 0.08);
-}
-
-.badge.orange {
-    color: var(--amber);
-    border-color: rgba(var(--amber-rgb), 0.4);
-    background: rgba(var(--amber-rgb), 0.08);
-}
-
-/* ---------- decision checklist states ---------- */
-
-.check.ok { border-left: 3px solid var(--buy); }
-.check.ok .check-icon { color: var(--buy); }
-
-.check.warn { border-left: 3px solid var(--amber); }
-.check.warn .check-icon { color: var(--amber); }
-
-.check.bad { border-left: 3px solid var(--sell); }
-.check.bad .check-icon { color: var(--sell); }
-
-.check.neutral {
-    border-left: 3px solid var(--line);
-    color: var(--steel);
-}
+.tr-skip  { color: var(--warning); background: rgba(var(--warning-rgb), 0.08); }
+.tr-close { color: var(--text-secondary); background: rgba(var(--steel-rgb), 0.08); }
+.tr-error { color: var(--danger);  background: rgba(var(--danger-rgb), 0.08); }
 
 /* ==========================================================================
-   THEME ENGINE CHROME (selector dropdown, floating button, toast, startup)
+   THEME ENGINE CHROME
    ========================================================================== */
 
 .theme-select {
@@ -256,8 +295,8 @@
     padding: 0;
     border: none;
     border-radius: 50%;
-    background: var(--amber);
-    color: var(--ink);
+    background: var(--primary);
+    color: #ffffff;
     font-size: 22px;
     line-height: 1;
     cursor: pointer;
@@ -268,10 +307,8 @@
 
 #quickTheme:hover {
     transform: scale(1.08);
-    background: var(--amber);
-    color: var(--ink);
-    border: none;
-    box-shadow: 0 18px 40px rgba(var(--amber-rgb), 0.35);
+    background: var(--primary-hover);
+    box-shadow: 0 18px 40px rgba(var(--primary-rgb), 0.35);
 }
 
 .theme-toast {
@@ -281,11 +318,11 @@
     transform: translateX(-50%) translateY(8px);
     padding: 12px 22px;
     background: var(--panel);
-    border: 1px solid var(--amber);
+    border: 1px solid var(--primary);
     border-radius: var(--radius-soft);
-    color: var(--paper);
+    color: var(--text);
     font-family: var(--font-display);
-    font-size: 0.82rem;
+    font-size: var(--text-small);
     letter-spacing: 0.02em;
     opacity: 0;
     pointer-events: none;
@@ -306,12 +343,6 @@
 }
 
 @keyframes app-startup {
-    from {
-        opacity: 0;
-        transform: scale(0.985);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
+    from { opacity: 0; transform: scale(0.985); }
+    to { opacity: 1; transform: scale(1); }
 }

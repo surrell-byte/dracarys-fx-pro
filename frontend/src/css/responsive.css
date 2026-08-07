@@ -1,41 +1,30 @@
 /* ==========================================================================
-   Responsive layout system - tiers match the reference design:
-     Mobile portrait   <768px         single column, bottom icon nav
-     Tablet portrait    768-1023px    icon-only sidebar, single column
-     Tablet landscape   1024-1279px   icon-only sidebar, wider grids
-     Laptop / Desktop   1280-1599px   full labeled sidebar (default, no
-                                      media query needed - this is the
-                                      un-overridden base layout)
-     Ultrawide          1600px+       wider max content width
+   Responsive - Playful Blue
    ========================================================================== */
 
-/* ---------- Ultrawide (1600px+): more breathing room, wider dashboard ---------- */
+/* ---------- Ultrawide (1600px+): more breathing room ---------- */
 @media (min-width: 1600px) {
-    .main .dashboard {
-        width: min(1600px, calc(100% - 80px));
+    .dashboard {
+        width: min(1440px, calc(100% - 128px));
     }
 
-    .signal-grid {
+    .kpi-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
-    .data-strip {
-        grid-template-columns: repeat(7, 1fr);
-    }
-
-    .data-cell:nth-child(7n) {
-        border-right: none;
+    .bottom-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
-/* ---------- Tablet landscape (1024-1279px): icon sidebar, 2-col grids ---------- */
+/* ---------- Tablet landscape (1024-1279px): 2-col grids ---------- */
 @media (max-width: 1279px) {
     .app {
         grid-template-columns: var(--sidebar-w-collapsed) 1fr;
     }
 
     .sidebar {
-        padding: 18px 8px;
+        padding: var(--sp-4) var(--sp-2);
     }
 
     .logo,
@@ -49,12 +38,20 @@
 
     .menu button {
         justify-content: center;
-        padding: 12px 4px;
+        padding: var(--sp-3) var(--sp-1);
+        min-height: 52px;
     }
 
-    .signal-grid,
-    .stat-strip {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .bottom-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .signal-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 
     .data-strip {
@@ -70,7 +67,7 @@
     }
 }
 
-/* ---------- Tablet portrait (768-1023px): icon sidebar continues, tighter grids ---------- */
+/* ---------- Tablet portrait (768-1023px) ---------- */
 @media (max-width: 1023px) {
     .trading-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -91,16 +88,29 @@
     .history-row span:nth-of-type(2) {
         display: none;
     }
+
+    .topbar {
+        flex-wrap: wrap;
+        height: auto;
+        padding: var(--sp-4);
+        gap: var(--sp-4);
+    }
+
+    .topbar-center {
+        order: 3;
+        flex: 1 1 100%;
+        max-width: none;
+        margin: 0;
+    }
 }
 
-/* ---------- Mobile portrait + landscape (<768px): bottom-fixed nav bar ---------- */
+/* ---------- Mobile portrait + landscape (<768px) ---------- */
 @media (max-width: 767px) {
     .app {
         display: block;
     }
 
-    /* Sidebar becomes a fixed bottom tab bar - icon + label, matching the
-       "Bottom Navigation" tile in the reference image. */
+    /* Sidebar becomes bottom tab bar */
     .sidebar {
         position: fixed;
         left: 0;
@@ -109,6 +119,8 @@
         top: auto;
         height: var(--bottom-nav-h);
         width: 100%;
+        margin: 0;
+        border-radius: var(--radius-soft) var(--radius-soft) 0 0;
         flex-direction: row;
         align-items: stretch;
         gap: 0;
@@ -116,13 +128,13 @@
         overflow-x: auto;
         overflow-y: hidden;
         border-right: none;
-        border-top: 1px solid var(--line);
-        background: linear-gradient(180deg, var(--panel), var(--ink-deep));
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
         z-index: 40;
     }
 
     .logo,
-    .menu-hint {
+    .menu-hint,
+    .profile-card {
         display: none;
     }
 
@@ -137,45 +149,57 @@
         min-width: 64px;
         flex-direction: column;
         gap: 2px;
-        border-left: none;
-        border-top: 3px solid transparent;
         border-radius: 0;
-        padding: 8px 4px 6px;
-        white-space: nowrap;
+        padding: var(--sp-2) var(--sp-1) var(--sp-1);
+        min-height: auto;
     }
 
     .menu button span.menu-label {
         display: block;
-        font-size: 0.62rem;
+        font-size: var(--text-caption);
     }
 
     .menu button.active {
-        border-left-color: transparent;
-        border-top-color: var(--amber);
-        background: rgba(var(--amber-rgb), 0.08);
-        transform: none;
+        border-top: 3px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
     }
 
-    /* Leave room at the bottom of the page so content isn't hidden
-       underneath the fixed nav bar. */
+    /* Leave room at the bottom */
     .main {
-        padding-bottom: calc(var(--bottom-nav-h) + 16px);
+        padding-bottom: calc(var(--bottom-nav-h) + var(--sp-4));
     }
 
     .main .dashboard {
-        width: min(100% - 20px, 1180px);
-        padding-top: 16px;
+        width: min(100% - 32px, 1180px);
+        padding: 0;
     }
 
     .topbar {
-        align-items: stretch;
         flex-direction: column;
+        align-items: stretch;
+        height: auto;
+        padding: var(--sp-4);
+        gap: var(--sp-3);
     }
 
-    .market-controls {
-        grid-template-columns: 1fr;
+    .topbar-left {
+        width: 100%;
     }
 
+    .topbar-center {
+        order: 3;
+        flex: 1 1 100%;
+        max-width: none;
+        margin: 0;
+    }
+
+    .topbar-right {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .kpi-grid,
     .signal-grid,
     .stat-strip,
     .trading-grid,
@@ -212,8 +236,9 @@
     }
 }
 
-/* ---------- Mobile landscape refinement (480-767px): 2-col where mobile portrait is 1 ---------- */
+/* ---------- Mobile landscape refinement (480-767px) ---------- */
 @media (min-width: 480px) and (max-width: 767px) {
+    .kpi-grid,
     .signal-grid,
     .stat-strip,
     .form-grid {
@@ -222,9 +247,9 @@
 }
 
 /* ==========================================================================
-   Presentation Mode - manual toggle (see presentationMode.js), not tied
-   to a screen-width breakpoint. Large text, simplified nav, high contrast.
+   Presentation Mode
    ========================================================================== */
+
 body.presentation-mode {
     font-size: calc(1rem * var(--font-scale, 1.35));
 }
@@ -234,7 +259,7 @@ body.presentation-mode .menu-hint {
 }
 
 body.presentation-mode .menu button {
-    padding: 16px 14px;
+    padding: var(--sp-4) var(--sp-3);
     font-size: 1.05rem;
 }
 

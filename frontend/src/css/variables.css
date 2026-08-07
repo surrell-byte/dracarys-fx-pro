@@ -1,83 +1,97 @@
 :root {
-    color-scheme: light;
+    /* ===== Colour Palette ===== */
+    --primary: #2563EB;
+    --primary-hover: #1D4ED8;
+    --primary-pressed: #1E40AF;
+    --primary-rgb: 37, 99, 235;
 
-    /* base surfaces - light theme: soft gray page, white cards
-       (was near-black; flipped to match the OTC Signal AI Pro mockup) */
-    --ink: #eef1f4;
-    --ink-deep: #e2e6ec;
-    --panel: #ffffff;
-    --panel-soft: #ffffff;
+    --success: #22C55E;
+    --success-hover: #16A34A;
+    --success-rgb: 34, 197, 94;
 
-    /* text - dark navy on light surfaces (was cool white) */
-    --paper: #111827;
-    --steel: #64748b;
+    --warning: #FBBF24;
+    --warning-hover: #F59E0B;
+    --warning-rgb: 251, 191, 36;
+
+    --purple: #8B5CF6;
+    --purple-hover: #7C3AED;
+    --purple-rgb: 139, 92, 246;
+
+    --danger: #EF4444;
+    --danger-hover: #DC2626;
+    --danger-rgb: 239, 68, 68;
+
+    /* Backgrounds */
+    --bg: #F8FAFC;
+    --panel: #FFFFFF;
+    --panel-soft: #FFFFFF;
+    --bg-secondary: #F1F5F9;
+
+    /* Borders */
+    --line: #E2E8F0;
+    --line-strong: #CBD5E1;
+
+    /* Text */
+    --text: #1E293B;
+    --text-secondary: #64748B;
+    --text-rgb: 30, 41, 59;
     --steel-rgb: 100, 116, 139;
 
-    /* accent (drives lines, focus rings, glows) - fintech green, tuned a
-       shade deeper than the dark-theme version so it holds contrast on
-       white cards */
-    --amber: #16a34a;
-    --amber-dim: #15803d;
-    --amber-rgb: 22, 163, 74;
+    /* Semantic */
+    --buy: #22C55E;
+    --buy-rgb: 34, 197, 94;
+    --sell: #EF4444;
+    --sell-rgb: 239, 68, 68;
 
-    /* state colors - buy matches accent green, sell stays a clear red */
-    --buy: #16a34a;
-    --buy-rgb: 22, 163, 74;
-    --sell: #e11d48;
-    --sell-rgb: 225, 29, 72;
+    /* ===== Shadows ===== */
+    --shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    --shadow-hover: 0 14px 30px rgba(15, 23, 42, 0.10);
+    --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+    --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.06);
+    --shadow-lg: 0 14px 30px rgba(15, 23, 42, 0.10);
 
-    /* derived from accent so every theme's lines/borders match its palette */
-    --line: rgba(15, 23, 42, 0.08);
-    --line-strong: rgba(15, 23, 42, 0.16);
+    /* ===== Border Radius ===== */
+    --radius-soft: 14px;
+    --radius-card: 20px;
+    --radius-chart: 20px;
+    --radius-sidebar: 28px;
+    --radius-search: 999px;
 
-    /* shadows - lighter, since these now sit on a white/light-gray page
-       instead of near-black */
-    --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-    --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
-    --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.07);
-    --shadow-lg: 0 16px 36px rgba(15, 23, 42, 0.1);
+    /* ===== Typography ===== */
+    --font-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
-    /* sidebar stays dark navy regardless of theme, matching the mockup
-       (every layout in the reference image keeps a dark sidebar even
-       though the main content is light) */
-    --sidebar-bg: #0f172a;
-    --sidebar-bg-deep: #0a0f1c;
-    --sidebar-text: #94a3b8;
-    --sidebar-active-text: #ffffff;
+    --text-hero: 36px;
+    --text-heading: 24px;
+    --text-card: 18px;
+    --text-body: 15px;
+    --text-small: 13px;
+    --text-caption: 12px;
 
-    /* Interactive elements (buttons/inputs/badges) get a touch of rounding
-       for a softer feel; structural panels/chart/data-strip stay sharp at
-       2px - that hard edge is core to the terminal look and shouldn't get lost. */
-    --radius-soft: 4px;
-    --radius-card: 14px;
+    /* ===== Spacing Scale ===== */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-6: 24px;
+    --sp-8: 32px;
+    --sp-12: 48px;
+    --sp-16: 64px;
 
-    --font-display: "IBM Plex Mono", "Courier New", monospace;
-    --font-body: "Inter", Arial, sans-serif;
-
-    --confidence-fill: 0%;
-
-    /* sidebar shell */
-    --sidebar-w: 250px;
+    /* ===== Layout ===== */
+    --sidebar-w: 260px;
     --sidebar-w-collapsed: 76px;
-    --bottom-nav-h: 64px;
+    --header-h: 88px;
+    --bottom-nav-h: 74px;
 
-    /* breakpoint reference values (used in comments/media queries below -
-       CSS media queries can't consume custom properties directly, but
-       keeping the numbers here means responsive.css and this file agree
-       on one source of truth to eyeball) */
-    --bp-mobile-landscape: 480px;
-    --bp-tablet-portrait: 768px;
-    --bp-tablet-landscape: 1024px;
+    /* ===== Breakpoints ===== */
+    --bp-mobile: 480px;
+    --bp-tablet: 768px;
     --bp-laptop: 1280px;
+    --bp-desktop: 1440px;
     --bp-ultrawide: 1600px;
-    --bp-presentation: 1920px;
-}
 
-/* Presentation Mode - manual toggle for smartboards/classroom displays.
-   Large text, high contrast, simplified nav. Toggled via the floating
-   button (see presentationMode.js) rather than an automatic breakpoint,
-   since a huge desktop monitor and an actual smartboard both live above
-   1600px but need very different treatments. */
-body.presentation-mode {
-    --font-scale: 1.35;
+    /* ===== Misc ===== */
+    --transition-fast: 200ms ease-out;
+    --confidence-fill: 0%;
 }
