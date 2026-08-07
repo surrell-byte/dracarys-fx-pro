@@ -148,6 +148,16 @@ async function main() {
         }
     });
 
+    cron.schedule(`${config.dailyReportMinute} ${config.dailyReportHour} * * ${config.weeklyReportDay}`, () => {
+        console.log("Generating weekly report...");
+        try {
+            const { filepath } = generateReport({ period: "weekly" });
+            console.log(`Weekly report written to ${filepath}`);
+        } catch (err) {
+            console.error("Weekly report generation failed:", err.message);
+        }
+    });
+
     console.log(
         `Daily report scheduled for ${String(config.dailyReportHour).padStart(2, "0")}:` +
         `${String(config.dailyReportMinute).padStart(2, "0")} local time. Leave this process running.`

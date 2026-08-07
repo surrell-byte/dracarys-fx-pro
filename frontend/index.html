@@ -22,6 +22,7 @@
                 <button type="button" data-target="page-journal"><span class="menu-icon">🤖</span><span class="menu-label">AI Journal</span></button>
                 <button type="button" disabled title="Not built yet"><span class="menu-icon">📅</span><span class="menu-label">Weekly Reports</span></button>
                 <button type="button" data-target="page-history"><span class="menu-icon">📚</span><span class="menu-label">Trade History</span></button>
+                <button type="button" data-target="page-live-reports"><span class="menu-icon">◉</span><span class="menu-label">Live Reports</span></button>
                 <button type="button" disabled title="Not built yet"><span class="menu-icon">⚙</span><span class="menu-label">Settings</span></button>
                 <button type="button" disabled title="Not built yet"><span class="menu-icon">🎨</span><span class="menu-label">Themes</span></button>
             </nav>
@@ -568,6 +569,21 @@
                     <div class="history-list" id="historyList"></div>
                 </section>
                 </div>
+                <div class="page" id="page-live-reports">
+                    <section class="panel live-reports-panel">
+                        <div class="section-head">
+                            <div><p class="eyebrow">Remote scheduler</p><h2>Live reports</h2></div>
+                            <p class="muted" data-live-status>Loading live data…</p>
+                        </div>
+                        <div class="stat-strip" data-live-summary></div>
+                        <div class="live-reports-grid">
+                            <section><h3>AI summary</h3><ul class="live-insights" data-live-insights></ul></section>
+                            <section><h3>Open signals</h3><div data-live-signals></div></section>
+                        </div>
+                        <section class="live-trades"><h3>Recent trades</h3><div data-live-trades></div></section>
+                        <section class="live-snapshots"><h3>Saved cloud reports</h3><div class="live-reports-grid"><div><h3>Daily</h3><div data-live-daily-reports></div></div><div><h3>Weekly</h3><div data-live-weekly-reports></div></div></div></section>
+                    </section>
+                </div>
             </main>
         </div>
     </div>
@@ -579,6 +595,6 @@
     <script type="module" src="src/js/core/router.js"></script>
     <script type="module" src="src/js/components/themeSelector.js"></script>
     <script type="module" src="src/js/core/presentationMode.js"></script>
+    <script type="module" src="src/js/components/liveReportsDashboard.js"></script>
 </body>
 </html>
-

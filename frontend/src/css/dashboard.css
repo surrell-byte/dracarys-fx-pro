@@ -97,6 +97,21 @@ h1 {
     margin-bottom: 16px;
 }
 
+.live-reports-panel { min-height: 580px; }
+.live-reports-grid { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr); gap: 20px; margin-top: 24px; }
+.live-reports-grid section, .live-trades { border-top: 1px solid var(--line); padding-top: 16px; }
+.live-reports-panel h3 { margin: 0 0 12px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.live-insights { margin: 0; padding-left: 18px; color: var(--text); line-height: 1.7; }
+.live-reports-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.live-reports-table th, .live-reports-table td { padding: 9px 7px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.live-reports-table th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.live-trades { margin-top: 24px; overflow-x: auto; }
+.live-snapshots { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 16px; }
+.saved-report-list { display: grid; gap: 8px; }
+.saved-report { display: grid; gap: 3px; padding: 10px; background: var(--panel-soft); border-left: 2px solid var(--amber); font-size: 13px; }
+.saved-report span { color: var(--muted); }
+@media (max-width: 760px) { .live-reports-grid { grid-template-columns: 1fr; } }
+
 /* ---------- signal hero row ---------- */
 
 .signal-grid {

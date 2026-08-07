@@ -44,6 +44,17 @@ CREATE INDEX IF NOT EXISTS idx_signals_status ON signals(status);
 CREATE INDEX IF NOT EXISTS idx_signals_symbol_strategy ON signals(symbol, strategy_id, status);
 CREATE INDEX IF NOT EXISTS idx_signals_created_at ON signals(created_at);
 CREATE INDEX IF NOT EXISTS idx_signals_closed_at ON signals(closed_at);
+
+CREATE TABLE IF NOT EXISTS report_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    report_type TEXT NOT NULL CHECK(report_type IN ('daily', 'weekly')),
+    period_start TEXT NOT NULL,
+    period_end TEXT NOT NULL,
+    generated_at TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    UNIQUE(report_type, period_start)
+);
+CREATE INDEX IF NOT EXISTS idx_report_snapshots_type_period ON report_snapshots(report_type, period_start DESC);
 `);
 
 // Migration for DBs created before expiry tracking existed. SQLite has no
@@ -103,6 +114,34 @@ export function getClosedSignalsSince(isoDate) {
 
 export function getAllClosedSignals() {
     return db.prepare(`SELECT * FROM signals WHERE status = 'closed' ORDER BY closed_at DESC`).all();
+}
+
+export function getRecentClosedSignals(limit = 100) {
+    return db.prepare(
+        `SELECT * FROM signals WHERE status = 'closed' ORDER BY closed_at DESC LIMIT ?`
+    ).all(Math.max(1, Math.min(Number(limit) || 100, 500)));
+}
+
+export function saveReportSnapshot({ reportType, periodStart, periodEnd, generatedAt, payload }) {
+    db.prepare(`
+        INSERT INTO report_snapshots (report_type, period_start, period_end, generated_at, payload)
+        VALUES (@reportType, @periodStart, @periodEnd, @generatedAt, @payload)
+        ON CONFLICT(report_type, period_start) DO UPDATE SET
+            period_end = excluded.period_end,
+            generated_at = excluded.generated_at,
+            payload = excluded.payload
+    `).run({ reportType, periodStart, periodEnd, generatedAt, payload: JSON.stringify(payload) });
+}
+
+export function getReportSnapshots(reportType, limit = 12) {
+    return db.prepare(`
+        SELECT report_type, period_start, period_end, generated_at, payload
+        FROM report_snapshots WHERE report_type = ? ORDER BY period_start DESC LIMIT ?
+    `).all(reportType, Math.max(1, Math.min(Number(limit) || 12, 100))).map(row => ({
+        ...row,
+        data: JSON.parse(row.payload),
+        payload: undefined
+    }));
 }
 
 export default db;

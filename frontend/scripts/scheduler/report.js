@@ -31,6 +31,24 @@ export function buildReportData(closedRows, openRows, dateLabel) {
         .sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0))
         .slice(0, 10);
 
+    const allClosedTrades = [...closedRows]
+        .sort((a, b) => String(b.closed_at).localeCompare(String(a.closed_at)));
+    const equity = allClosedTrades.slice().reverse().reduce((points, trade) => {
+        const previous = points.at(-1)?.value ?? 0;
+        points.push({ at: trade.closed_at, value: previous + (trade.pnl_pct ?? 0) });
+        return points;
+    }, []);
+    const topSymbol = symbolStats[0] ?? null;
+    const insights = [
+        totalTrades
+            ? `${topSymbol?.key ?? "No single pair"} has the strongest P/L today at ${formatSigned(topSymbol?.totalPnl ?? 0)}%.`
+            : "No closed trades yet today; live signals will appear as the scheduler opens them.",
+        openRows.length
+            ? `${openRows.length} signal${openRows.length === 1 ? " is" : "s are"} currently open; highest confidence: ${openHighConfidence[0]?.confidence ?? "—"}.`
+            : "There are no currently open signals.",
+        totalTrades ? `Today’s accuracy is ${winRate.toFixed(1)}% across ${totalTrades} closed trade${totalTrades === 1 ? "" : "s"}.` : ""
+    ].filter(Boolean);
+
     return {
         dateLabel,
         totalTrades,
@@ -46,8 +64,12 @@ export function buildReportData(closedRows, openRows, dateLabel) {
         worstStrategy,
         mostActiveSymbol,
         topSignals,
+        allClosedTrades,
         openHighConfidence,
-        openCount: openRows.length
+        openCount: openRows.length,
+        equity,
+        insights,
+        generatedAt: new Date().toISOString()
     };
 }
 
@@ -77,6 +99,10 @@ function groupAndScore(rows, keyFn) {
 
 function sum(arr) {
     return arr.reduce((acc, v) => acc + (Number.isFinite(v) ? v : 0), 0);
+}
+
+function formatSigned(value) {
+    return `${value >= 0 ? "+" : ""}${Number(value).toFixed(2)}`;
 }
 
 export function renderReportHtml(data) {

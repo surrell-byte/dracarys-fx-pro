@@ -6,27 +6,56 @@
 import fs from "fs";
 import path from "path";
 import { config } from "./config.js";
-import { getClosedSignalsSince, getAllOpenSignals } from "./db.js";
+import { getClosedSignalsSince, getAllOpenSignals, saveReportSnapshot } from "./db.js";
 import { buildReportData, renderReportHtml } from "./report.js";
 
-export function generateReport({ date = new Date() } = {}) {
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
+// Data-only entry point for the live API. A dashboard refresh must not write
+// another HTML report file to disk.
+export function getLiveReportData({ date = new Date(), period = "daily" } = {}) {
+    const periodStart = startForPeriod(date, period);
 
-    const closedRows = getClosedSignalsSince(startOfDay.toISOString());
+    const closedRows = getClosedSignalsSince(periodStart.toISOString());
     const openRows = getAllOpenSignals();
 
-    const dateLabel = date.toLocaleDateString(undefined, {
-        weekday: "long", year: "numeric", month: "long", day: "numeric"
-    });
+    const dateLabel = periodLabel(periodStart, date, period);
 
-    const data = buildReportData(closedRows, openRows, dateLabel);
+    return {
+        ...buildReportData(closedRows, openRows, dateLabel),
+        reportType: period,
+        periodStart: periodStart.toISOString(),
+        periodEnd: date.toISOString()
+    };
+}
+
+export function generateReport({ date = new Date(), period = "daily" } = {}) {
+    const data = getLiveReportData({ date, period });
     const html = renderReportHtml(data);
 
     fs.mkdirSync(config.reportsDir, { recursive: true });
-    const filename = `report-${date.toISOString().slice(0, 10)}.html`;
+    const filename = `${period}-report-${date.toISOString().slice(0, 10)}.html`;
     const filepath = path.join(config.reportsDir, filename);
     fs.writeFileSync(filepath, html);
+    saveReportSnapshot({
+        reportType: period,
+        periodStart: data.periodStart,
+        periodEnd: data.periodEnd,
+        generatedAt: data.generatedAt,
+        payload: data
+    });
 
     return { filepath, data };
+}
+
+function startForPeriod(date, period) {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    if (period === "weekly") start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+    return start;
+}
+
+function periodLabel(start, end, period) {
+    if (period === "weekly") {
+        return `Week of ${start.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })} – ${end.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
+    }
+    return end.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 }

@@ -51,6 +51,8 @@ export const config = {
     // 24h local time the daily HTML report auto-generates.
     dailyReportHour: 18,
     dailyReportMinute: 0,
+    // Weekly report runs at the same time. 0 = Sunday, matching node-cron.
+    weeklyReportDay: 0,
 
     // Telegram push notifications - see notify.js header for one-time bot
     // setup steps. Needs TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID in
@@ -63,6 +65,10 @@ export const config = {
     dailySummary: true
 },
 
-    dbPath: new URL("../../data/signals.db", import.meta.url).pathname,
-    reportsDir: new URL("../../reports", import.meta.url).pathname
+    // Overridable via env vars so a cloud deploy can point these at a
+    // persistent volume (e.g. Railway) instead of the repo-relative
+    // default used for local dev. Falls back to the original paths when
+    // the env vars aren't set, so nothing changes for local `npm run scheduler`.
+    dbPath: process.env.SCHEDULER_DB_PATH || new URL("../../data/signals.db", import.meta.url).pathname,
+    reportsDir: process.env.SCHEDULER_REPORTS_DIR || new URL("../../reports", import.meta.url).pathname
 };
