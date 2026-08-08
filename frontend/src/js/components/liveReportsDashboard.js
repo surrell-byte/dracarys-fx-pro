@@ -12,10 +12,12 @@ if (page) {
 
     const load = async () => {
         try {
+            // limit=3650 pulls the full history since the scheduler started
+            // (see db.js getReportSnapshots) rather than just the last week.
             const [response, dailyResponse, weeklyResponse] = await Promise.all([
                 fetch("/api/live-reports", { cache: "no-store" }),
-                fetch("/api/report-history?route=reports/daily&limit=7", { cache: "no-store" }),
-                fetch("/api/report-history?route=reports/weekly&limit=8", { cache: "no-store" })
+                fetch("/api/report-history?route=reports/daily&limit=3650", { cache: "no-store" }),
+                fetch("/api/report-history?route=reports/weekly&limit=3650", { cache: "no-store" })
             ]);
             const [data, daily, weekly] = await Promise.all([response.json(), dailyResponse.json(), weeklyResponse.json()]);
             if (!response.ok) throw new Error(data.error || "Unable to load live reports.");
@@ -46,12 +48,16 @@ if (page) {
     }
 
     function renderSnapshots(container, reports) {
-        container.innerHTML = reports.length
-            ? `<div class="saved-report-list">${reports.map(report => {
-                const data = report.data || {};
-                return `<div class="saved-report"><strong>${escapeHtml(data.dateLabel || report.period_start)}</strong><span>${data.totalTrades ?? 0} trades · ${Number(data.winRate ?? 0).toFixed(1)}% win rate · ${Number(data.totalPnlPct ?? 0) >= 0 ? "+" : ""}${Number(data.totalPnlPct ?? 0).toFixed(2)}%</span></div>`;
-            }).join("")}</div>`
-            : '<p class="muted">Reports are saved after the first scheduled run.</p>';
+        if (!reports.length) {
+            container.innerHTML = '<p class="muted">Reports are saved after the first scheduled run.</p>';
+            return;
+        }
+        const count = `<p class="muted">${reports.length} report${reports.length === 1 ? "" : "s"} since tracking started</p>`;
+        const list = reports.map(report => {
+            const data = report.data || {};
+            return `<div class="saved-report"><strong>${escapeHtml(data.dateLabel || report.period_start)}</strong><span>${data.totalTrades ?? 0} trades · ${Number(data.winRate ?? 0).toFixed(1)}% win rate · ${Number(data.totalPnlPct ?? 0) >= 0 ? "+" : ""}${Number(data.totalPnlPct ?? 0).toFixed(2)}%</span></div>`;
+        }).join("");
+        container.innerHTML = `${count}<div class="saved-report-list">${list}</div>`;
     }
 
     function table(rows, closed) {
