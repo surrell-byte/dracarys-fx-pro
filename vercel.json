@@ -1,7 +1,11 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
-  "outputDirectory": "frontend/dist",
+  "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/((?!assets/|api/).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!assets/|api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }
