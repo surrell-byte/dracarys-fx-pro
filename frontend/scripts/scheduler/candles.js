@@ -46,7 +46,12 @@ async function fetchForexCandles({ symbol, timeframe, limit }) {
             high: Number(v.high),
             low: Number(v.low),
             close: Number(v.close),
-            volume: Number(v.volume ?? 0)
+            // Forex has no real volume data. The browser's forexDataService
+            // correctly reports `null` for this (so downstream volumeRatio
+            // logic can distinguish "no data" from "zero volume"); this
+            // scheduler path was defaulting to 0 instead, which is a
+            // different signal to any indicator that branches on it.
+            volume: v.volume != null ? Number(v.volume) : null
         }))
         .reverse(); // Twelve Data returns newest-first; signalEngine expects oldest-first
 }

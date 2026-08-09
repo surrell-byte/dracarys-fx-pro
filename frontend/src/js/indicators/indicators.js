@@ -106,8 +106,18 @@ export function calculateBB(closes, period = 20, stdDev = 2) {
     return result;
 }
 
+// Proper Wilder-style ADX. Earlier versions of this function computed DX
+// (the raw directional-movement ratio for a single bar) and returned it
+// as "adx" without ever smoothing it — that's a materially different,
+// much noisier series than real ADX, which is itself a smoothed average
+// of DX over `period` bars. Since ADX feeds trend-regime detection, AI
+// weighting, and multiple strategies, getting this right matters more
+// than most individual indicators.
 export function calculateADX(highs, lows, closes, period = 14) {
-    if (highs.length < period * 2 || lows.length < period * 2 || closes.length < period * 2) return [];
+    // Need enough bars for: 1 lost to diffing, `period` to seed the first
+    // Wilder-smoothed TR/+DM/-DM, and another `period` to seed the first
+    // smoothed DX (i.e. the first real ADX value).
+    if (highs.length < period * 2 + 1 || lows.length < period * 2 + 1 || closes.length < period * 2 + 1) return [];
 
     const trueRanges = [];
     const plusDM = [];
@@ -127,23 +137,51 @@ export function calculateADX(highs, lows, closes, period = 14) {
         minusDM.push(lowDiff > highDiff && lowDiff > 0 ? lowDiff : 0);
     }
 
-    const result = [];
+    // Seed Wilder's smoothed sums with a plain sum over the first `period`
+    // bars, then apply Wilder's recursive smoothing formula:
+    //   smoothed[i] = smoothed[i-1] - (smoothed[i-1] / period) + raw[i]
+    let smoothedTR = sumWindow(trueRanges, period - 1, period);
+    let smoothedPlusDM = sumWindow(plusDM, period - 1, period);
+    let smoothedMinusDM = sumWindow(minusDM, period - 1, period);
 
-    for (let i = period - 1; i < trueRanges.length; i += 1) {
-        const tr = sumWindow(trueRanges, i, period);
-        const plus = sumWindow(plusDM, i, period);
-        const minus = sumWindow(minusDM, i, period);
+    const dxValues = [];
+    const diSeries = [];
 
+    const pushDX = (tr, plus, minus) => {
         if (tr === 0) {
-            result.push({ adx: 0, pdi: 0, mdi: 0 });
-            continue;
+            diSeries.push({ pdi: 0, mdi: 0 });
+            dxValues.push(0);
+            return;
         }
-
         const pdi = (plus / tr) * 100;
         const mdi = (minus / tr) * 100;
-        const adx = ((Math.abs(pdi - mdi) / Math.max(pdi + mdi, Number.EPSILON)) * 100);
+        const dx = (Math.abs(pdi - mdi) / Math.max(pdi + mdi, Number.EPSILON)) * 100;
+        diSeries.push({ pdi, mdi });
+        dxValues.push(dx);
+    };
 
-        result.push({ adx, pdi, mdi });
+    pushDX(smoothedTR, smoothedPlusDM, smoothedMinusDM);
+
+    for (let i = period; i < trueRanges.length; i += 1) {
+        smoothedTR = smoothedTR - (smoothedTR / period) + trueRanges[i];
+        smoothedPlusDM = smoothedPlusDM - (smoothedPlusDM / period) + plusDM[i];
+        smoothedMinusDM = smoothedMinusDM - (smoothedMinusDM / period) + minusDM[i];
+        pushDX(smoothedTR, smoothedPlusDM, smoothedMinusDM);
+    }
+
+    if (dxValues.length < period) return [];
+
+    const result = [];
+
+    // First ADX value is a plain average of the first `period` DX values,
+    // then Wilder-smooth it going forward — this mirrors how Wilder
+    // originally defined ADX from DX.
+    let adx = dxValues.slice(0, period).reduce((total, value) => total + value, 0) / period;
+    result.push({ adx, pdi: diSeries[period - 1].pdi, mdi: diSeries[period - 1].mdi });
+
+    for (let i = period; i < dxValues.length; i += 1) {
+        adx = ((adx * (period - 1)) + dxValues[i]) / period;
+        result.push({ adx, pdi: diSeries[i].pdi, mdi: diSeries[i].mdi });
     }
 
     return result;

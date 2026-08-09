@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS signals (
     expiry_minutes REAL,
     status TEXT NOT NULL DEFAULT 'open',
     candles_since_open INTEGER NOT NULL DEFAULT 0,
+    last_candle_time INTEGER,
     closed_at TEXT,
     exit_price REAL,
     outcome TEXT,
@@ -60,7 +61,7 @@ CREATE INDEX IF NOT EXISTS idx_report_snapshots_type_period ON report_snapshots(
 // Migration for DBs created before expiry tracking existed. SQLite has no
 // "ADD COLUMN IF NOT EXISTS", so just try and ignore the "duplicate column"
 // error if it's already there.
-for (const col of ["expiry_label TEXT", "expiry_minutes REAL"]) {
+for (const col of ["expiry_label TEXT", "expiry_minutes REAL", "last_candle_time INTEGER"]) {
     try {
         db.exec(`ALTER TABLE signals ADD COLUMN ${col}`);
     } catch (err) {
@@ -93,8 +94,16 @@ export function getAllOpenSignals() {
     return db.prepare(`SELECT * FROM signals WHERE status = 'open' ORDER BY created_at DESC`).all();
 }
 
-export function incrementCandlesSinceOpen(id) {
-    db.prepare(`UPDATE signals SET candles_since_open = candles_since_open + 1 WHERE id = ?`).run(id);
+export function getTodaysClosedSignals() {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    return db.prepare(
+        `SELECT * FROM signals WHERE status = 'closed' AND closed_at >= ? ORDER BY closed_at DESC`
+    ).all(startOfDay.toISOString());
+}
+
+export function incrementCandlesSinceOpen(id, candleTime) {
+    db.prepare(`UPDATE signals SET candles_since_open = candles_since_open + 1, last_candle_time = ? WHERE id = ?`).run(candleTime ?? null, id);
 }
 
 export function closeSignal(id, { closedAt, exitPrice, outcome, closeReason, pnlPct }) {

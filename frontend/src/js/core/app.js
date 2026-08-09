@@ -10,7 +10,11 @@ import { renderHistoryTable, clearHistory as clearDemoHistory } from "@demo/trad
 import { getStrategyLeaderboard } from "@demo/analytics.js";
 import { renderJournal, clearJournal } from "@demo/journal.js";
 
-const API_URL = "http://localhost:3001";
+// In development, talk to the local backend directly. In production, go
+// through the Vercel proxy at /api/trade so the backend's API key never
+// ships in the browser bundle (see api/trade.js). Override with
+// VITE_API_URL if you're pointing at a different backend/proxy.
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:3001" : "");
 const HTF_REFRESH_MS = 15 * 60 * 1000; // daily candles barely move intraday
 
 const state = {
@@ -770,7 +774,10 @@ function resetPaperAccount() {
 }
 
 async function sendTrade(signal, settings, quantity = settings.quantity) {
-    const response = await fetch(`${API_URL}/trade`, {
+    // Dev talks straight to the backend's /trade route; production goes
+    // through the /api/trade Vercel proxy (no /trade suffix there).
+    const tradeUrl = import.meta.env.DEV ? `${API_URL}/trade` : `${API_URL}/api/trade`;
+    const response = await fetch(tradeUrl, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -961,9 +968,25 @@ async function runBacktestFromUi() {
         }
 
         elements.backtestRunBtn.textContent = "Running...";
+
+        // Fetch daily candles too, but only if a selected strategy actually
+        // uses the higher-timeframe filter - no point paying for an extra
+        // fetch otherwise. Without this, useHigherTimeframe strategies were
+        // silently backtested with that filter disabled (see backtestEngine.js).
+        const needsHtf = strategyIds.some((id) => STRATEGIES[id]?.useHigherTimeframe);
+        let dailyCandles = null;
+        if (needsHtf) {
+            try {
+                dailyCandles = await market.getHistoricalCandles(symbol, "1d", { total: 260 }, backtestAssetClass);
+            } catch (error) {
+                console.warn("Could not fetch daily candles for HTF filter, continuing without it:", error.message);
+            }
+        }
+
         const result = await runBacktest(candles, {
             strategyIds,
             payoutRatio,
+            dailyCandles,
             onProgress: (done, runTotal) => {
                 setBacktestStatus(`Replaying candle ${done.toLocaleString()} / ${runTotal.toLocaleString()}...`);
             }

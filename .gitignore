@@ -1,2 +1,35 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.bak
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Build output
+dist/
+frontend/dist/
 .vercel
+
+# Data / generated artifacts
+data/
+frontend/data/
+reports/
+frontend/reports/
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+
+# Archives
 dracarys-fx-pro-*.zip
+*.zip
+
+# OS
+.DS_Store
+.env.vercel
+.dracarys-fix-backup-*/

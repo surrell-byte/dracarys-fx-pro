@@ -19,11 +19,23 @@ import { generateSignal, STRATEGIES } from "@signals/signalEngine.js";
 import { config } from "./config.js";
 import { fetchCandles } from "./candles.js";
 import { shouldOpen, checkExit } from "./virtualTrades.js";
+import { evaluatePortfolioRisk } from "./portfolioRisk.js";
 import * as db from "./db.js";
 import { generateReport } from "./generateReport.js";
 import { sendDiscordMessage, meetsNotifyThreshold, formatSignalMessage, formatDailySummaryMessage } from "./notify.js";
 
 const strategyIds = config.strategies.length ? config.strategies : Object.keys(STRATEGIES);
+
+const TIMEFRAME_MS = { "1m": 60_000, "5m": 300_000, "15m": 900_000, "1h": 3_600_000, "1d": 86_400_000 };
+
+// Heuristic: a candle is "still forming" if its start time plus one full
+// timeframe duration hasn't passed yet. This isn't perfect (exchange clocks
+// can differ slightly from ours), but it's a reasonable guard against
+// trading off a bar that hasn't closed.
+function isLikelyStillForming(candle, timeframe) {
+    const durationMs = TIMEFRAME_MS[timeframe] ?? 60_000;
+    return Date.now() < candle.time + durationMs;
+}
 
 async function scanSymbol({ symbol, assetClass }) {
     let candles;
@@ -35,21 +47,45 @@ async function scanSymbol({ symbol, assetClass }) {
     }
     if (!candles.length) return;
 
-    const latestPrice = candles.at(-1).close;
+    // Exchanges commonly include the still-forming candle as the last
+    // element of an OHLCV response. Trading off that candle's close (or
+    // treating a poll cycle as if it were a closed candle) makes the
+    // scheduler see different, incomplete data than the browser UI - which
+    // only ever reacts to fully-closed candles. Drop the in-progress bar
+    // here so both surfaces evaluate the same closed-candle history.
+    const closedCandles = isLikelyStillForming(candles.at(-1), config.timeframe)
+        ? candles.slice(0, -1)
+        : candles;
+    if (!closedCandles.length) return;
 
-    // 1. Resolve open virtual trades against the freshest price first, so a
-    //    trade that would exit this cycle doesn't also get double-counted
-    //    if a fresh signal reopens on the same symbol/strategy below.
+    const latestCandle = closedCandles.at(-1);
+    const latestPrice = latestCandle.close;
+
+    // 1. Resolve open virtual trades against the freshest closed candle
+    //    first, so a trade that would exit this cycle doesn't also get
+    //    double-counted if a fresh signal reopens on the same
+    //    symbol/strategy below.
     for (const strategyId of strategyIds) {
         for (const trade of db.getOpenSignals(symbol, strategyId)) {
-            db.incrementCandlesSinceOpen(trade.id);
-            const candlesSinceOpen = trade.candles_since_open + 1;
+            // Only advance the hold counter when a genuinely new closed
+            // candle has appeared since we last looked at this trade -
+            // otherwise, on timeframes polled more often than once per
+            // candle (e.g. 1m candles polled every 5m for forex), this
+            // counter silently becomes "polls since open" instead of
+            // "candles since open", and maxHoldCandles ends up meaning
+            // something different per asset class.
+            const isNewCandle = trade.last_candle_time == null || latestCandle.time > trade.last_candle_time;
+            if (isNewCandle) {
+                db.incrementCandlesSinceOpen(trade.id, latestCandle.time);
+            }
+            const candlesSinceOpen = isNewCandle ? trade.candles_since_open + 1 : trade.candles_since_open;
 
             const result = checkExit(
                 { type: trade.type, stopLoss: trade.stop_loss, takeProfit: trade.take_profit, entryPrice: trade.entry_price },
-                latestPrice,
+                latestCandle,
                 candlesSinceOpen,
-                config.maxHoldCandles
+                config.maxHoldCandles,
+                config.ambiguousFillRule
             );
 
             if (result) {
@@ -72,9 +108,25 @@ async function scanSymbol({ symbol, assetClass }) {
     //    has an open trade so we don't stack duplicate positions on top
     //    of each other every single cycle.
     for (const strategyId of strategyIds) {
-        const signal = generateSignal(candles, strategyId);
+        const signal = generateSignal(closedCandles, strategyId);
         if (!shouldOpen(signal)) continue;
         if (db.getOpenSignals(symbol, strategyId).length > 0) continue;
+
+        // Portfolio-level gate: even though this symbol/strategy pair is
+        // free to open, check it against exposure limits across ALL open
+        // trades first. Without this, independent strategies agreeing on
+        // the same directional thesis could stack dozens of positions
+        // that are really one bet repeated, not independent confirmations.
+        const riskCheck = evaluatePortfolioRisk(
+            { symbol, type: signal.type },
+            db.getAllOpenSignals(),
+            db.getTodaysClosedSignals(),
+            config.portfolioRiskLimits
+        );
+        if (!riskCheck.allowed) {
+            console.log(`[${symbol}] skipped ${signal.strategy} ${signal.type}: ${riskCheck.reasons.join("; ")}`);
+            continue;
+        }
 
         const id = db.insertSignal({
             createdAt: new Date().toISOString(),

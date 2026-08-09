@@ -12,7 +12,7 @@ export default async function handler(request, response) {
     }
 
     try {
-        const upstream = await fetch(url, {
+        const upstream = await fetch(`${url}/api/latest`, {
             headers: { Authorization: `Basic ${Buffer.from(`${user}:${password}`).toString("base64")}` },
             signal: AbortSignal.timeout(10_000)
         });

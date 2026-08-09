@@ -1,6 +1,7 @@
 import { generateSignal, STRATEGIES } from "@signals/signalEngine.js";
 import { evaluateEdge } from "@analysis/payoutMetrics.js";
 import { DEFAULT_EXPIRY_LENGTHS } from "@analysis/binaryTracker.js";
+import { calculateEMA } from "@indicators/indicators.js";
 
 // Backtests historical candles walk-forward through the SAME generateSignal
 // pipeline the live app uses - this is deliberately not a reimplementation
@@ -22,6 +23,55 @@ import { DEFAULT_EXPIRY_LENGTHS } from "@analysis/binaryTracker.js";
 // so it can never corrupt the live tester's persisted state.
 export const DEFAULT_MAX_WINDOW = 320; // matches app.js state.maxCandles
 
+// Builds a lookup that, given any intraday timestamp, returns the
+// higher-timeframe (daily) trend that would have been known *as of that
+// time* - i.e. only using daily candles that had already closed. This is
+// what closes the "backtest doesn't reproduce HTF-gated strategies" gap:
+// strategies with useHigherTimeframe were previously backtested with the
+// filter permanently disabled (context always defaulted to NEUTRAL),
+// which is a different, generally looser, trading rule than what actually
+// runs live. No lookahead: a daily candle only starts influencing the
+// trend once it has fully closed (its own `time` plus one day has passed).
+function buildHigherTimeframeLookup(dailyCandles) {
+    if (!Array.isArray(dailyCandles) || dailyCandles.length < 200) {
+        return () => "NEUTRAL";
+    }
+
+    const closes = dailyCandles.map((c) => c.close);
+    const ema50 = calculateEMA(closes, 50);
+    const ema200 = calculateEMA(closes, 200);
+    const offset50 = closes.length - ema50.length;
+    const offset200 = closes.length - ema200.length;
+
+    // One trend value per daily candle index (aligned to `dailyCandles`),
+    // available starting the candle *after* the one that closes it.
+    const trendByIndex = dailyCandles.map((_, i) => {
+        const e50 = ema50[i - offset50];
+        const e200 = ema200[i - offset200];
+        if (!Number.isFinite(e50) || !Number.isFinite(e200)) return "NEUTRAL";
+        if (e50 > e200) return "UP";
+        if (e50 < e200) return "DOWN";
+        return "NEUTRAL";
+    });
+
+    const ONE_DAY_MS = 86_400_000;
+
+    return (timestamp) => {
+        // Find the last daily candle that had fully closed before `timestamp`.
+        let lo = 0, hi = dailyCandles.length - 1, result = -1;
+        while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            if (dailyCandles[mid].time + ONE_DAY_MS <= timestamp) {
+                result = mid;
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        return result === -1 ? "NEUTRAL" : trendByIndex[result];
+    };
+}
+
 export async function runBacktest(candles, options = {}) {
     const {
         strategyIds = Object.keys(STRATEGIES),
@@ -29,12 +79,24 @@ export async function runBacktest(candles, options = {}) {
         expiryLengths = DEFAULT_EXPIRY_LENGTHS,
         maxWindow = DEFAULT_MAX_WINDOW,
         minSampleSize = 20,
+        dailyCandles = null,
         onProgress = null,
         yieldEvery = 40
     } = options;
 
     if (!Array.isArray(candles) || candles.length < 2) {
         throw new Error("Not enough candles to backtest (need at least 2).");
+    }
+
+    const getHigherTrend = buildHigherTimeframeLookup(dailyCandles);
+    const usesHigherTimeframe = strategyIds.some((id) => STRATEGIES[id]?.useHigherTimeframe);
+    if (usesHigherTimeframe && !dailyCandles) {
+        console.warn(
+            "[backtestEngine] One or more strategies use useHigherTimeframe, but no " +
+            "`dailyCandles` were passed to runBacktest(). The HTF filter will be a " +
+            "no-op (always NEUTRAL), which does not match how these strategies " +
+            "behave live - pass daily candles for the same symbol to get accurate results."
+        );
     }
 
     const spotPositions = {};
@@ -81,7 +143,7 @@ export async function runBacktest(candles, options = {}) {
 
         // 3. One generateSignal() call per strategy per candle, shared by both models.
         strategyIds.forEach((id) => {
-            const signal = generateSignal(windowCandles, id);
+            const signal = generateSignal(windowCandles, id, { higherTrend: getHigherTrend(candleTime) });
             if (!signal.ready) return;
             if (signal.type !== "BUY" && signal.type !== "SELL") {
                 lastDirection[id] = null;
@@ -145,6 +207,7 @@ export async function runBacktest(candles, options = {}) {
             to: candles.at(-1).time,
             maxWindow,
             strategiesRun: strategyIds.length,
+            higherTimeframeApplied: Boolean(dailyCandles),
             spotTrades: spotTrades.length,
             binaryTradesResolved: resolvedBinary.length,
             binaryTradesDropped: pendingBinary.length

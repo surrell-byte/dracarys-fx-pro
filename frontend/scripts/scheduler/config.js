@@ -48,6 +48,21 @@ export const config = {
     // whichever side of entry price it's sitting on when time runs out).
     maxHoldCandles: 60,
 
+    // When a single candle's high/low range touches both the stop-loss and
+    // take-profit levels, we can't tell from OHLC data alone which was hit
+    // first. "conservative" assumes the stop lost; "optimistic" assumes the
+    // target won. Conservative is the safer default for trusting the stats.
+    ambiguousFillRule: "conservative",
+
+    // Portfolio-level exposure limits, enforced in addition to the
+    // per-symbol/per-strategy stacking check above. See portfolioRisk.js.
+    portfolioRiskLimits: {
+        maxConcurrentPositions: 20,
+        maxPositionsPerSymbol: 4,
+        maxPositionsPerDirection: 12,
+        maxDailyLossPct: null
+    },
+
     // 24h local time the daily HTML report auto-generates.
     dailyReportHour: 18,
     dailyReportMinute: 0,
