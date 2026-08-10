@@ -45,6 +45,7 @@ export class BinaryOutcomeTracker {
         this.resolved = [];
         this.lastDirection = {};
         this.currentSymbol = null;
+        this.currentAssetClass = null;
 
         strategyIds.forEach((id) => {
             this.lastDirection[id] = null;
@@ -53,9 +54,10 @@ export class BinaryOutcomeTracker {
         this.load();
     }
 
-    setSymbol(symbol) {
+    setSymbol(symbol, assetClass = null) {
         if (symbol === this.currentSymbol) return;
         this.currentSymbol = symbol;
+        this.currentAssetClass = assetClass;
         this.pending = [];
         this.strategyIds.forEach((id) => {
             this.lastDirection[id] = null;
@@ -96,6 +98,17 @@ export class BinaryOutcomeTracker {
                 entryPrice: prediction.entryPrice,
                 exitPrice,
                 win,
+                // Carried through from the prediction so stats can be
+                // partitioned correctly (see getBinaryStats) and so
+                // confidence-vs-actual-outcome calibration is possible
+                // (see getCalibrationCurve) - previously neither field was
+                // recorded, so a BTC strategy's resolved trades and a
+                // EUR/USD strategy's resolved trades under the same
+                // strategy id silently pooled into one win rate, and
+                // "confidence" had no way to be checked against reality.
+                symbol: prediction.symbol,
+                assetClass: prediction.assetClass,
+                confidence: prediction.confidence,
                 resolvedAt: Date.now()
             });
         }
@@ -122,7 +135,10 @@ export class BinaryOutcomeTracker {
                     direction: signal.type,
                     entryPrice: signal.price,
                     entryIndex: currentIndex,
-                    expiryLength
+                    expiryLength,
+                    symbol: this.currentSymbol,
+                    assetClass: this.currentAssetClass,
+                    confidence: signal.confidence ?? null
                 });
             });
         });
@@ -135,15 +151,27 @@ export class BinaryOutcomeTracker {
     // a misleadingly precise-looking percentage - callers should show
     // "not enough data yet (n/min)" for those rather than a number.
     //
+    // By default this only counts resolved trades for the CURRENT symbol.
+    // Previously every resolved trade for a strategy/expiry pooled across
+    // every symbol ever traded on this browser (BTC and EUR/USD signals
+    // under "strategy A, 5-candle expiry" contributed to the same win
+    // rate) - which silently mixes two different markets' statistics into
+    // one number. Pass `{ allSymbols: true }` to explicitly opt into the
+    // old pooled-across-everything view if that's what you actually want
+    // (e.g. "does this strategy work at all, anywhere").
+    //
     // Each row also carries the payout-aware verdict from payoutMetrics.js:
     // breakeven (the win rate needed just to not lose money at this
     // payout), edge (winRate - breakeven), a 95% confidence interval on the
     // true win rate, and a plain-language verdict. Trust the verdict over
     // eyeballing winRate vs. 50% - 50% is the wrong bar for binary options.
-    getBinaryStats(minSampleSize = MIN_SAMPLE_SIZE, payoutRatio = DEFAULT_PAYOUT_RATIO) {
+    getBinaryStats(minSampleSize = MIN_SAMPLE_SIZE, payoutRatio = DEFAULT_PAYOUT_RATIO, { allSymbols = false } = {}) {
         const byKey = {};
+        const scoped = allSymbols
+            ? this.resolved
+            : this.resolved.filter((t) => t.symbol === this.currentSymbol);
 
-        this.resolved.forEach((trade) => {
+        scoped.forEach((trade) => {
             const key = `${trade.strategy}::${trade.expiryLength}`;
             if (!byKey[key]) {
                 byKey[key] = {
@@ -187,6 +215,52 @@ export class BinaryOutcomeTracker {
             });
     }
 
+    // Calibration curve: does a stated confidence number actually mean
+    // what it claims? Buckets resolved trades by their recorded
+    // `confidence` value and reports the ACTUAL win rate observed in each
+    // bucket. This is the concrete mechanism the review asked for under
+    // "real probability calibration" - it's the empirical table you'd use
+    // to eventually turn "signal distribution" into a genuine calibrated
+    // probability. Deliberately pooled across symbols by default (unlike
+    // getBinaryStats): the question here is "does a confidence number of
+    // ~70% mean ~70% in general", not "how does BTC perform" - a narrower
+    // per-symbol slice would just starve every bucket of sample size
+    // without answering a different question. Pass a `symbol` filter if
+    // you specifically want that narrower view once you have enough data.
+    //
+    // Default bucket edges match the table in the review: 50, 55, ..., 85+.
+    getCalibrationCurve({ bucketEdges = [50, 55, 60, 65, 70, 75, 80, 85], minSampleSize = MIN_SAMPLE_SIZE, symbol = null } = {}) {
+        const scoped = this.resolved.filter((t) =>
+            Number.isFinite(t.confidence) && (symbol == null || t.symbol === symbol)
+        );
+
+        const buckets = bucketEdges.map((lower, i) => ({
+            lower,
+            upper: i + 1 < bucketEdges.length ? bucketEdges[i + 1] : 101,
+            trades: 0,
+            wins: 0
+        }));
+
+        scoped.forEach((trade) => {
+            const bucket = buckets.find((b) => trade.confidence >= b.lower && trade.confidence < b.upper);
+            if (!bucket) return;
+            bucket.trades += 1;
+            if (trade.win) bucket.wins += 1;
+        });
+
+        return buckets.map((b) => {
+            const reliable = b.trades >= minSampleSize;
+            return {
+                rangeLabel: b.upper >= 101 ? `${b.lower}%+` : `${b.lower}-${b.upper}%`,
+                predictedMidpoint: b.upper >= 101 ? b.lower : (b.lower + b.upper) / 2,
+                trades: b.trades,
+                actualWinRate: reliable ? (b.wins / b.trades) * 100 : null,
+                reliable,
+                minSampleSize
+            };
+        });
+    }
+
     reset() {
         this.pending = [];
         this.resolved = [];
@@ -202,7 +276,8 @@ export class BinaryOutcomeTracker {
                 pending: this.pending,
                 resolved: this.resolved,
                 lastDirection: this.lastDirection,
-                currentSymbol: this.currentSymbol
+                currentSymbol: this.currentSymbol,
+                currentAssetClass: this.currentAssetClass
             }));
         } catch (error) {
             console.warn("Binary tracker save failed:", error.message);
@@ -217,6 +292,7 @@ export class BinaryOutcomeTracker {
             this.pending = Array.isArray(parsed.pending) ? parsed.pending : [];
             this.resolved = Array.isArray(parsed.resolved) ? parsed.resolved : [];
             this.currentSymbol = parsed.currentSymbol ?? null;
+            this.currentAssetClass = parsed.currentAssetClass ?? null;
             if (parsed.lastDirection) {
                 this.strategyIds.forEach((id) => {
                     if (id in parsed.lastDirection) this.lastDirection[id] = parsed.lastDirection[id];

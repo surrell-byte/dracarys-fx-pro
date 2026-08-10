@@ -137,6 +137,18 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+}
+
+.notif-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--danger);
+    border: 2px solid var(--panel);
 }
 
 .icon-btn:hover {
@@ -228,6 +240,45 @@ h1 {
     margin-top: var(--sp-3);
     height: 32px;
     opacity: 0.6;
+}
+
+/* ---------- Playful Blue: solid-color KPI variants ---------- */
+.kpi-card--blue,
+.kpi-card--green,
+.kpi-card--orange,
+.kpi-card--purple {
+    border: none;
+    color: #ffffff;
+}
+
+.kpi-card--blue::before,
+.kpi-card--green::before,
+.kpi-card--orange::before,
+.kpi-card--purple::before {
+    display: none;
+}
+
+.kpi-card--blue { background: linear-gradient(135deg, var(--primary), var(--primary-hover)); }
+.kpi-card--green { background: linear-gradient(135deg, var(--success), var(--success-hover)); }
+.kpi-card--orange { background: linear-gradient(135deg, var(--warning-hover), var(--warning)); }
+.kpi-card--purple { background: linear-gradient(135deg, var(--purple), var(--purple-hover)); }
+
+.kpi-card--blue .kpi-label,
+.kpi-card--green .kpi-label,
+.kpi-card--orange .kpi-label,
+.kpi-card--purple .kpi-label,
+.kpi-card--blue .kpi-sub,
+.kpi-card--green .kpi-sub,
+.kpi-card--orange .kpi-sub,
+.kpi-card--purple .kpi-sub {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.kpi-card--blue .kpi-value,
+.kpi-card--green .kpi-value,
+.kpi-card--orange .kpi-value,
+.kpi-card--purple .kpi-value {
+    color: #ffffff;
 }
 
 /* ==========================================================================
@@ -337,6 +388,26 @@ canvas {
     font-size: var(--text-card);
     font-weight: 600;
     color: var(--text);
+}
+
+.bottom-card-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+}
+
+.view-all-link {
+    font-family: var(--font-display);
+    font-size: var(--text-small);
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.view-all-link:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
 }
 
 .bottom-card-body {

@@ -26,7 +26,8 @@ zip -r "$DEST" "$PROJECT_NAME" \
   -x "*.bak" \
   -x "*.sqlite" \
   -x "*.sqlite3" \
-  -x "*.db"
+  -x "*.db" \
+  -x "${PROJECT_NAME}/.dracarys-fix-backup-*/*"
 
 echo ""
 echo "⚠️  Verifying no secrets made it into the archive..."

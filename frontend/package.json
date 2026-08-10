@@ -7,13 +7,18 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "scheduler": "vite-node -c vite.config.js scripts/scheduler/runScheduler.js",
+    "smc-ablation": "vite-node -c vite.config.js scripts/analysis/smcAblationTest.js",
     "report": "vite-node -c vite.config.js scripts/scheduler/cli-report.js",
     "reports-server": "vite-node -c vite.config.js scripts/scheduler/reportServer.js"
   },
   "devDependencies": {
+    "jsdom": "^30.0.1",
     "vite": "^6.0.0",
-    "vite-node": "^2.1.0"
+    "vite-node": "^2.1.0",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "better-sqlite3": "^11.3.0",

@@ -2,6 +2,8 @@ import { generateSignal, STRATEGIES } from "@signals/signalEngine.js";
 import { evaluateEdge } from "@analysis/payoutMetrics.js";
 import { DEFAULT_EXPIRY_LENGTHS } from "@analysis/binaryTracker.js";
 import { calculateEMA } from "@indicators/indicators.js";
+import { applyEntryCost, applyExitCost, applyFeeToPnl } from "@analysis/executionCosts.js";
+import { computeStrategyStats } from "@analysis/performanceStats.js";
 
 // Backtests historical candles walk-forward through the SAME generateSignal
 // pipeline the live app uses - this is deliberately not a reimplementation
@@ -81,7 +83,24 @@ export async function runBacktest(candles, options = {}) {
         minSampleSize = 20,
         dailyCandles = null,
         onProgress = null,
-        yieldEvery = 40
+        yieldEvery = 40,
+        // Execution-cost assumptions (spread/slippage/fee), matching the
+        // live scheduler/paper engine (executionCosts.js). Previously the
+        // backtest scored trades off raw signal prices with no costs at
+        // all, which made backtest results systematically more optimistic
+        // than the paper-trading numbers for the exact same strategy -
+        // the same signal, "traded" through two different cost models.
+        // Passing assetClass/costs here closes that gap; omitting
+        // assetClass falls back to the old cost-free behavior so callers
+        // that don't care yet aren't silently changed.
+        assetClass = null,
+        costs = null,
+        // Merged into every generateSignal() context alongside higherTrend.
+        // Exists so callers (e.g. scripts/analysis/smcAblationTest.js) can
+        // pass strategy-scoring options like excludeVoteModules through the
+        // backtest loop without backtestEngine needing to know what any
+        // particular option means - it's just forwarded verbatim.
+        extraSignalContext = {}
     } = options;
 
     if (!Array.isArray(candles) || candles.length < 2) {
@@ -120,7 +139,14 @@ export async function runBacktest(candles, options = {}) {
             if (targetIndex > i) continue;
 
             const exitCandle = candles[targetIndex];
-            const exitPrice = exitCandle.close;
+            // Binary/fixed-expiry bets settle against the strike (entry)
+            // price a broker would actually have quoted, not the bare
+            // candle close - apply the same entry/exit fill model as the
+            // spot leg so a near-the-money result isn't scored as a win
+            // purely because costs were ignored.
+            const exitPrice = assetClass
+                ? applyExitCost(exitCandle.close, prediction.direction, assetClass, costs)
+                : exitCandle.close;
             const win = prediction.direction === "BUY"
                 ? exitPrice > prediction.entryPrice
                 : exitPrice < prediction.entryPrice;
@@ -143,7 +169,7 @@ export async function runBacktest(candles, options = {}) {
 
         // 3. One generateSignal() call per strategy per candle, shared by both models.
         strategyIds.forEach((id) => {
-            const signal = generateSignal(windowCandles, id, { higherTrend: getHigherTrend(candleTime) });
+            const signal = generateSignal(windowCandles, id, { higherTrend: getHigherTrend(candleTime), ...extraSignalContext });
             if (!signal.ready) return;
             if (signal.type !== "BUY" && signal.type !== "SELL") {
                 lastDirection[id] = null;
@@ -155,32 +181,49 @@ export async function runBacktest(candles, options = {}) {
             const position = spotPositions[id];
 
             if (position.side && position.side !== nextSide) {
-                const pnlPercent = position.side === "long"
-                    ? ((signal.price - position.entry) / position.entry) * 100
-                    : ((position.entry - signal.price) / position.entry) * 100;
+                // Closing leg: a long exits like a SELL, a short exits like
+                // a BUY-to-cover. Apply the same fill model the scheduler
+                // uses so the % PnL reported here reflects what a real
+                // fill would have looked like, not the raw candle price.
+                const exitType = position.side === "long" ? "BUY" : "SELL";
+                const filledExit = assetClass
+                    ? applyExitCost(signal.price, exitType, assetClass, costs)
+                    : signal.price;
+                const rawPnlPercent = position.side === "long"
+                    ? ((filledExit - position.entry) / position.entry) * 100
+                    : ((position.entry - filledExit) / position.entry) * 100;
+                const pnlPercent = assetClass
+                    ? applyFeeToPnl(rawPnlPercent, assetClass, costs)
+                    : rawPnlPercent;
                 spotTrades.push({
                     strategy: id,
                     label: STRATEGIES[id]?.label ?? id,
                     side: position.side,
                     entry: position.entry,
-                    exit: signal.price,
+                    exit: filledExit,
                     pnlPercent,
                     closedAt: candleTime
                 });
             }
             if (position.side !== nextSide) {
+                const entryType = nextSide === "long" ? "BUY" : "SELL";
                 position.side = nextSide;
-                position.entry = signal.price;
+                position.entry = assetClass
+                    ? applyEntryCost(signal.price, entryType, assetClass, costs)
+                    : signal.price;
             }
 
             // -- binary model: fresh fixed-expiry bet only on a direction change --
             if (lastDirection[id] !== signal.type) {
                 lastDirection[id] = signal.type;
+                const binaryEntryPrice = assetClass
+                    ? applyEntryCost(signal.price, signal.type, assetClass, costs)
+                    : signal.price;
                 expiryLengths.forEach((expiryLength) => {
                     pendingBinary.push({
                         strategy: id,
                         direction: signal.type,
-                        entryPrice: signal.price,
+                        entryPrice: binaryEntryPrice,
                         entryIndex: i,
                         expiryLength
                     });
@@ -208,54 +251,133 @@ export async function runBacktest(candles, options = {}) {
             maxWindow,
             strategiesRun: strategyIds.length,
             higherTimeframeApplied: Boolean(dailyCandles),
+            executionCostsApplied: Boolean(assetClass),
             spotTrades: spotTrades.length,
             binaryTradesResolved: resolvedBinary.length,
             binaryTradesDropped: pendingBinary.length
         },
         spotLeaderboard: buildSpotLeaderboard(strategyIds, spotTrades),
+        // Raw chronological per-strategy trade lists, exposed so the UI
+        // (or any other caller) can run rolling-performance analysis
+        // (computeRollingPerformance in performanceStats.js) without
+        // needing to re-run the whole backtest just to get trade-level
+        // data the engine already computed.
+        spotTradesByStrategy: groupTradesByStrategy(strategyIds, spotTrades),
         binaryStats: buildBinaryStats(strategyIds, resolvedBinary, expiryLengths, payoutRatio, minSampleSize)
     };
 }
 
-function buildSpotLeaderboard(strategyIds, trades) {
+// Walk-forward / out-of-sample runner. A single aggregate backtest number
+// can hide a strategy that only worked because one big trending month
+// carried the whole sample - it says nothing about whether performance is
+// stable period to period. This slices `candles` into `folds` sequential,
+// non-overlapping chronological segments and runs a completely independent
+// runBacktest() over each one (fresh positions/state per fold - a strategy
+// doesn't carry an open position or any state across a fold boundary, and
+// each fold only ever sees its own candles - no lookahead into later folds,
+// and no leakage of earlier-fold trades into later-fold stats).
+//
+// Trade-off: each fold's indicators cold-start at its first candle rather
+// than having `maxWindow` candles of lead-in history, so the first handful
+// of candles in every fold (until e.g. EMA200/ADX have enough bars) won't
+// generate signals. That's a deliberate simplicity-over-cleverness choice:
+// a lead-in window that fed trades back into the wrong fold would be a
+// worse bug than a short warm-up gap. For long folds this warm-up is a
+// small fraction of the sample; keep fold candle counts well above your
+// longest strategy lookback (see DEFAULT_MAX_WINDOW / signalEngine.js).
+//
+// With folds=2 this is a simple in-sample/out-of-sample split (first half
+// vs. held-out second half). With folds>2 it's walk-forward: a leaderboard
+// per period, showing whether a strategy's edge holds up across different
+// market regimes or is one lucky segment away from the aggregate number.
+export async function runWalkForwardBacktest(candles, options = {}) {
+    const { folds = 4, dailyCandles = null, ...rest } = options;
+
+    if (!Array.isArray(candles) || candles.length < folds * 2) {
+        throw new Error(`Not enough candles for ${folds} walk-forward folds.`);
+    }
+
+    const foldSize = Math.floor(candles.length / folds);
+    const results = [];
+
+    for (let f = 0; f < folds; f++) {
+        const foldStart = f * foldSize;
+        const foldEnd = f === folds - 1 ? candles.length : foldStart + foldSize;
+        const foldCandles = candles.slice(foldStart, foldEnd);
+
+        // dailyCandles for HTF context should only include days that had
+        // already closed before this fold's own start, mirroring what a
+        // live deployment restarted at that point in time would have seen.
+        const foldDailyCandles = dailyCandles
+            ? dailyCandles.filter((d) => d.time <= candles[foldStart].time)
+            : null;
+
+        const result = await runBacktest(foldCandles, { ...rest, dailyCandles: foldDailyCandles });
+
+        results.push({
+            fold: f + 1,
+            from: foldCandles[0].time,
+            to: foldCandles.at(-1).time,
+            candleCount: foldCandles.length,
+            ...result
+        });
+    }
+
+    return {
+        folds: results,
+        summary: {
+            foldCount: folds,
+            totalCandles: candles.length,
+            note: "Each fold is an independent, non-overlapping, chronological out-of-sample slice. Compare spotLeaderboard.totalPnl and binaryStats.edge across folds - a strategy whose numbers hold up across most folds is more trustworthy than one whose aggregate is dominated by a single fold."
+        }
+    };
+}
+
+// Extracted so both buildSpotLeaderboard and callers who need the raw
+// chronological trade lists (e.g. rolling-performance analysis in the UI)
+// share one grouping implementation.
+function groupTradesByStrategy(strategyIds, trades) {
     const byStrategy = {};
-    strategyIds.forEach((id) => {
-        byStrategy[id] = {
-            strategy: id,
-            label: STRATEGIES[id]?.label ?? id,
-            trades: 0,
-            wins: 0,
-            totalPnl: 0,
-            peak: 0,
-            trough: 0,
-            running: 0,
-            maxDrawdown: 0
-        };
-    });
-
+    strategyIds.forEach((id) => { byStrategy[id] = []; });
     trades.forEach((trade) => {
-        const row = byStrategy[trade.strategy];
-        if (!row) return;
-        row.trades += 1;
-        row.totalPnl += trade.pnlPercent;
-        if (trade.pnlPercent > 0) row.wins += 1;
-
-        row.running += trade.pnlPercent;
-        row.peak = Math.max(row.peak, row.running);
-        row.maxDrawdown = Math.max(row.maxDrawdown, row.peak - row.running);
+        if (byStrategy[trade.strategy]) byStrategy[trade.strategy].push(trade);
     });
+    return byStrategy;
+}
 
-    return Object.values(byStrategy)
-        .map((row) => ({
-            strategy: row.strategy,
-            label: row.label,
-            trades: row.trades,
-            wins: row.wins,
-            winRate: row.trades ? (row.wins / row.trades) * 100 : 0,
-            totalPnl: row.totalPnl,
-            avgPnl: row.trades ? row.totalPnl / row.trades : 0,
-            maxDrawdown: row.maxDrawdown
-        }))
+function buildSpotLeaderboard(strategyIds, trades) {
+    // Group into per-strategy chronological trade lists (trades were
+    // pushed in candle order during the main loop above, so this
+    // preserves that order) and hand off to performanceStats.js for the
+    // expectancy/drawdown/risk-adjusted math - one shared implementation
+    // instead of re-deriving profit factor, Sharpe, streaks, etc. here.
+    const byStrategy = groupTradesByStrategy(strategyIds, trades);
+
+    return strategyIds
+        .map((id) => {
+            const strategyTrades = byStrategy[id];
+            const stats = computeStrategyStats(strategyTrades);
+            return {
+                strategy: id,
+                label: STRATEGIES[id]?.label ?? id,
+                trades: stats.trades,
+                winRate: stats.winRate != null ? stats.winRate * 100 : 0,
+                totalPnl: stats.totalReturn,
+                avgPnl: stats.trades ? stats.totalReturn / stats.trades : 0,
+                maxDrawdown: stats.maxDrawdown,
+                avgDrawdown: stats.avgDrawdown,
+                recoveryFactor: stats.recoveryFactor,
+                expectancy: stats.expectancy,
+                profitFactor: stats.profitFactor,
+                sharpe: stats.sharpe,
+                sortino: stats.sortino,
+                calmar: stats.calmar,
+                longestWinStreak: stats.longestWinStreak,
+                longestLossStreak: stats.longestLossStreak,
+                sampleReliable: stats.sampleConfidence.reliable,
+                winRateConfidenceInterval: stats.sampleConfidence.confidenceInterval
+            };
+        })
         .sort((a, b) => b.totalPnl - a.totalPnl);
 }
 

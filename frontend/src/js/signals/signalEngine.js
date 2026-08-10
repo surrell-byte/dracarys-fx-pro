@@ -371,7 +371,15 @@ export function generateSignal(candles, strategyId = "balanced", context = {}) {
             closes,
             atrPercent,
             volumeRatio,
-            regime
+            regime,
+            // Ablation hook: pass e.g. { excludeVoteModules: ["orderBlock",
+            // "fairValueGap", ...] } via generateSignal's `context` to test
+            // whether a given voting module actually adds predictive value
+            // (see the original review's "SMC modules should be treated as
+            // hypotheses, not facts" note, and
+            // scripts/analysis/smcAblationTest.js). Defaults to including
+            // everything, so normal callers are unaffected.
+            excludeVoteModules: context?.excludeVoteModules ?? []
         })
         : scoreStrategy({
         strategy,
@@ -871,7 +879,8 @@ function scoreEmaPullbackAdx({ adx, atrPercent, candles, ema20, ema50, volumeRat
 // rest of generateSignal already expects — it deliberately does NOT
 // re-implement any scoring logic itself, so the combiner stays the single
 // source of truth for how votes get weighed.
-function scoreAiConfidencePipeline({ candles, highs, lows, closes, atrPercent, volumeRatio, regime }) {
+function scoreAiConfidencePipeline({ candles, highs, lows, closes, atrPercent, volumeRatio, regime, excludeVoteModules = [] }) {
+    const excluded = new Set(excludeVoteModules);
     const votes = [
         { name: "ema", ...analyzeEma(closes) },
         { name: "rsi", ...analyzeRsi(closes) },
@@ -910,7 +919,7 @@ function scoreAiConfidencePipeline({ candles, highs, lows, closes, atrPercent, v
         { name: "liquiditySweep", ...analyzeLiquiditySweep(candles) },
         { name: "breakerBlock", ...analyzeBreakerBlocks(candles) },
         { name: "mitigation", ...analyzeMitigation(candles) }
-    ];
+    ].filter((vote) => !excluded.has(vote.name));
 
     // Milestone 4: volatility-adaptive weighting. Reweights each module's
     // vote based on the current ATR% regime before combining, rather than
@@ -950,7 +959,7 @@ function scoreAiConfidencePipeline({ candles, highs, lows, closes, atrPercent, v
     };
 }
 
-function scoreStrategy(context) {
+export function scoreStrategy(context) {
     const {
         strategy,
         ema20,
@@ -973,24 +982,42 @@ function scoreStrategy(context) {
     const reasons = [];
     const confirmations = [];
 
+    // EMA trend, MACD, the RSI trend-continuation vote, and the ADX boost
+    // all measure the same underlying thing (is the market trending, and
+    // which way). Left unweighted, a single trending market gets counted
+    // as four independent "votes" for the same side, which overstates
+    // confidence. trendClusterSide tracks the side this cluster has
+    // already voted for; later cluster members that merely restate it
+    // are discounted rather than dropped, since they still carry some
+    // marginal information (e.g. confirming the trend hasn't stalled).
+    const CORR_DISCOUNT = 0.5;
+    let trendClusterSide = null;
+
     if (ema20 && ema50) {
         if (ema20 > ema50) {
             buyScore += weights.trend;
             reasons.push("EMA trend up");
+            trendClusterSide = "buy";
         } else {
             sellScore += weights.trend;
             reasons.push("EMA trend down");
+            trendClusterSide = "sell";
         }
     }
 
     if (macd) {
-        if (macd.MACD > macd.signal) {
-            buyScore += weights.momentum;
+        const macdSide = macd.MACD > macd.signal ? "buy" : "sell";
+        const macdWeight = trendClusterSide === macdSide
+            ? weights.momentum * CORR_DISCOUNT
+            : weights.momentum;
+        if (macdSide === "buy") {
+            buyScore += macdWeight;
             reasons.push("MACD bullish");
         } else {
-            sellScore += weights.momentum;
+            sellScore += macdWeight;
             reasons.push("MACD bearish");
         }
+        if (!trendClusterSide) trendClusterSide = macdSide;
     }
 
     if (rsi <= 35) {
@@ -1000,9 +1027,13 @@ function scoreStrategy(context) {
         sellScore += weights.rsi;
         reasons.push("RSI overbought");
     } else if (strategy === STRATEGIES.trend && rsi > 50) {
-        buyScore += weights.rsi / 2;
+        const rsiWeight = trendClusterSide === "buy" ? (weights.rsi / 2) * CORR_DISCOUNT : weights.rsi / 2;
+        buyScore += rsiWeight;
+        if (!trendClusterSide) trendClusterSide = "buy";
     } else if (strategy === STRATEGIES.trend && rsi < 50) {
-        sellScore += weights.rsi / 2;
+        const rsiWeight = trendClusterSide === "sell" ? (weights.rsi / 2) * CORR_DISCOUNT : weights.rsi / 2;
+        sellScore += rsiWeight;
+        if (!trendClusterSide) trendClusterSide = "sell";
     }
 
     if (bb) {
@@ -1067,8 +1098,12 @@ function scoreStrategy(context) {
     }
 
     if (adx?.adx > 25 && weights.adxBoost !== 0) {
-        if (buyScore > sellScore) buyScore += weights.adxBoost;
-        if (sellScore > buyScore) sellScore += weights.adxBoost;
+        // ADX confirms trend strength for whichever side is already
+        // leading - it's part of the same trend cluster as EMA/MACD/RSI,
+        // so discount it too when that cluster has already voted.
+        const adxBoost = trendClusterSide ? weights.adxBoost * CORR_DISCOUNT : weights.adxBoost;
+        if (buyScore > sellScore) buyScore += adxBoost;
+        if (sellScore > buyScore) sellScore += adxBoost;
         confirmations.push("strong trend");
     }
 

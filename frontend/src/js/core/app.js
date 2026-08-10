@@ -1,7 +1,8 @@
 import { UnifiedMarketDataService } from "@services/unifiedMarketDataService.js";
 import { generateSignal, STRATEGIES } from "@signals/signalEngine.js";
 import { StrategyTester } from "@analysis/strategyTester.js";
-import { runBacktest } from "@analysis/backtestEngine.js";
+import { runBacktest, runWalkForwardBacktest } from "@analysis/backtestEngine.js";
+import { computeRollingPerformance } from "@analysis/performanceStats.js";
 import { BinaryOutcomeTracker } from "@analysis/binaryTracker.js";
 import { getHigherTimeframeTrend } from "@analysis/multiTimeframe.js";
 import demo from "@demo/demoAccount.js";
@@ -9,6 +10,31 @@ import { openPosition, closePosition } from "@demo/tradeEngine.js";
 import { renderHistoryTable, clearHistory as clearDemoHistory } from "@demo/tradeHistory.js";
 import { getStrategyLeaderboard } from "@demo/analytics.js";
 import { renderJournal, clearJournal } from "@demo/journal.js";
+import { formatPrice, formatNumber, formatCurrency, formatSigned } from "@core/format.js";
+import { drawChart as drawChartOnCanvas } from "@core/chart.js";
+import {
+    resolveQuantity,
+    isCoolingDown as isCoolingDownCore,
+    getPaperPnl as getPaperPnlCore,
+    calculatePositionPnl as calculatePositionPnlCore,
+    executePaperTrade as executePaperTradeCore,
+    checkPaperStops as checkPaperStopsCore,
+    closePaperPositionManually,
+    resetPaperAccount as resetPaperAccountCore
+} from "@core/paperTrading.js";
+import { intervalToMinutes, expiryLabel, clampPayoutRatio, edgeClass, verdictClass } from "@core/labels.js";
+import {
+    renderTester as renderTesterCore,
+    renderBinaryStats as renderBinaryStatsCore,
+    renderCalibrationCurve as renderCalibrationCurveCore
+} from "@core/testerRender.js";
+import {
+    renderBacktestResults as renderBacktestResultsCore,
+    renderWalkForwardResults as renderWalkForwardResultsCore
+} from "@core/backtestRender.js";
+import { upsertCandle as upsertCandleCore } from "@core/candleBuffer.js";
+import { decideExecution } from "@core/executionDecision.js";
+import { resolveMarketSelection } from "@core/marketSelection.js";
 
 // In development, talk to the local backend directly. In production, go
 // through the Vercel proxy at /api/trade so the backend's API key never
@@ -98,6 +124,7 @@ const elements = {
     sessionBody: document.querySelector("#sessionBody"),
     assetBody: document.querySelector("#assetBody"),
     binaryStatsBody: document.querySelector("#binaryStatsBody"),
+    calibrationBody: document.querySelector("#calibrationBody"),
     payoutRatioInput: document.querySelector("#payoutRatioInput"),
     testerReset: document.querySelector("#testerReset"),
     tradeNowBtn: document.querySelector("#tradeNowBtn"),
@@ -121,10 +148,20 @@ const elements = {
     backtestStrategy: document.querySelector("#backtestStrategy"),
     backtestLookback: document.querySelector("#backtestLookback"),
     backtestPayout: document.querySelector("#backtestPayout"),
+    backtestMode: document.querySelector("#backtestMode"),
+    backtestFoldsWrap: document.querySelector("#backtestFoldsWrap"),
+    backtestFolds: document.querySelector("#backtestFolds"),
     backtestRunBtn: document.querySelector("#backtestRunBtn"),
     backtestStatus: document.querySelector("#backtestStatus"),
+    backtestSingleResults: document.querySelector("#backtestSingleResults"),
     backtestLeaderboardBody: document.querySelector("#backtestLeaderboardBody"),
-    backtestBinaryBody: document.querySelector("#backtestBinaryBody")
+    backtestBinaryBody: document.querySelector("#backtestBinaryBody"),
+    backtestWalkForwardResults: document.querySelector("#backtestWalkForwardResults"),
+    backtestWalkForwardRanges: document.querySelector("#backtestWalkForwardRanges"),
+    backtestWalkForwardHead: document.querySelector("#backtestWalkForwardHead"),
+    backtestWalkForwardBody: document.querySelector("#backtestWalkForwardBody"),
+    rollingStrategySelect: document.querySelector("#rollingStrategySelect"),
+    rollingPerformanceBody: document.querySelector("#rollingPerformanceBody")
 };
 
 const market = new UnifiedMarketDataService(state.symbol, state.interval, state.maxCandles, state.assetClass);
@@ -200,6 +237,15 @@ elements.backtestRunBtn?.addEventListener("click", () => {
     runBacktestFromUi();
 });
 
+elements.backtestMode?.addEventListener("change", () => {
+    const isWalkForward = elements.backtestMode.value === "walkforward";
+    if (elements.backtestFoldsWrap) elements.backtestFoldsWrap.hidden = !isWalkForward;
+});
+
+elements.rollingStrategySelect?.addEventListener("change", () => {
+    renderRollingPerformance();
+});
+
 elements.demoResetBtn?.addEventListener("click", () => {
     const confirmed = window.confirm("Reset the Demo Account back to $10,000? This clears balance, trade history, and the journal.");
     if (!confirmed) return;
@@ -229,24 +275,14 @@ elements.tradeNowBtn?.addEventListener("click", async () => {
 
 elements.closePaperBtn?.addEventListener("click", () => {
     const price = state.candles.at(-1)?.close;
-    if (!state.paper.side) {
+    const outcome = closePaperPositionManually(state.paper, price, { closePosition });
+    if (!outcome) {
         setExecutionStatus("No open position to close");
         return;
     }
-    const pnl = calculatePositionPnl(price);
-    state.paper.realizedPnl += pnl;
-    const closedSide = state.paper.side;
-    if (state.paper.demoId) {
-        closePosition(state.paper.demoId, price, "Manually closed");
-        state.paper.demoId = null;
-    }
-    state.paper.side = null;
-    state.paper.entry = null;
-    state.paper.quantity = 0;
-    state.paper.stopLoss = null;
-    state.paper.takeProfit = null;
     renderPaperAccount(price);
     renderDemoAccount();
+    const { pnl, closedSide } = outcome;
     const msg = `Closed ${closedSide} — P/L: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`;
     setExecutionStatus(msg);
     showTradeResult({ status: "closed", reason: msg });
@@ -301,7 +337,7 @@ async function loadMarket() {
         market.setMarket(state.symbol, state.interval, state.assetClass);
         tester.setSymbol(state.apiSymbol);
         renderTester();
-        binaryTracker.setSymbol(state.apiSymbol);
+        binaryTracker.setSymbol(state.apiSymbol, state.assetClass);
         renderBinaryStats();
         state.candles = await market.getCandles(state.symbol, state.interval, state.maxCandles, state.assetClass);
         renderSignal(generateSignal(state.candles, state.strategy, signalContext()));
@@ -316,23 +352,23 @@ async function loadMarket() {
 
 function updateMarketFromSelection() {
     const selectedPair = elements.pairSelect.selectedOptions[0];
-    state.symbol = elements.pairSelect.value;
-    state.apiSymbol = selectedPair?.dataset.apiSymbol ?? state.symbol.toUpperCase();
-    state.assetClass = selectedPair?.dataset.assetClass ?? "crypto";
+    const resolved = resolveMarketSelection({
+        symbolValue: elements.pairSelect.value,
+        apiSymbolAttr: selectedPair?.dataset.apiSymbol,
+        assetClassAttr: selectedPair?.dataset.assetClass,
+        interval: state.interval
+    });
+    state.symbol = resolved.symbol;
+    state.apiSymbol = resolved.apiSymbol;
+    state.assetClass = resolved.assetClass;
     state.strategy = elements.strategySelect.value;
-    elements.marketLabel.textContent = `${state.symbol.toUpperCase()} · ${state.interval} live candles`;
+    elements.marketLabel.textContent = resolved.marketLabel;
 }
 
+// Module-8-era candle buffer logic now lives in core/candleBuffer.js; this
+// is a thin wrapper supplying app.js's `state` around the pure version.
 function upsertCandle(candle) {
-    const last = state.candles.at(-1);
-
-    if (last?.time === candle.time) {
-        state.candles[state.candles.length - 1] = candle;
-    } else {
-        state.candles.push(candle);
-    }
-
-    state.candles = state.candles.slice(-state.maxCandles);
+    state.candles = upsertCandleCore(state.candles, candle, state.maxCandles);
 }
 
 // Probability Engine display: buy/wait/sell always sum to 100% by
@@ -499,37 +535,20 @@ function recordSignal(signal) {
 
 async function maybeExecute(signal) {
     const settings = getTradeSettings();
+    const decision = decideExecution(signal, settings, {
+        isCoolingDown: isCoolingDown(settings.cooldownSeconds),
+        paperPnl: getPaperPnl(signal.price)
+    });
 
-    if (!settings.autoTrade) {
-        setExecutionStatus("Manual mode");
-        return;
-    }
-
-    if (!signal.ready || signal.type === "HOLD") {
-        setExecutionStatus("Waiting for actionable signal");
-        return;
-    }
-
-    if (signal.confidence < settings.minConfidence) {
-        setExecutionStatus(`Confidence below ${settings.minConfidence}%`);
-        return;
-    }
-
-    if (isCoolingDown(settings.cooldownSeconds)) {
-        setExecutionStatus("Cooldown active");
-        return;
-    }
-
-    const pnl = getPaperPnl(signal.price);
-    if (pnl <= -settings.maxLoss) {
-        elements.autoTrade.checked = false;
-        setExecutionStatus("Max loss reached, auto disabled");
+    if (decision.action === "skip") {
+        if (decision.disableAutoTrade) elements.autoTrade.checked = false;
+        setExecutionStatus(decision.statusMessage);
         return;
     }
 
     state.lastTradeAt = Date.now();
 
-    if (settings.mode === "paper") {
+    if (decision.action === "paper") {
         const result = executePaperTrade(signal, resolveQuantity(signal, settings));
         appendAction(result);
         setExecutionStatus(result.action);
@@ -638,114 +657,41 @@ function getTradeSettings() {
     };
 }
 
-// Module 8 (Position Sizing): risk% of account / ATR stop distance. Falls
-// back to the fixed trade-size field whenever risk sizing is off or the
-// signal has no ATR-based stop distance to size against yet.
-function resolveQuantity(signal, settings) {
-    if (!settings.useRiskSizing) return settings.quantity;
-
-    const stopDistance = signal.risk?.stopDistance;
-    if (!Number.isFinite(stopDistance) || stopDistance <= 0) return settings.quantity;
-
-    const riskAmount = settings.accountSize * (settings.riskPercent / 100);
-    if (!Number.isFinite(riskAmount) || riskAmount <= 0) return settings.quantity;
-
-    const sized = riskAmount / stopDistance;
-    return Number.isFinite(sized) && sized > 0 ? Number(sized.toFixed(6)) : settings.quantity;
+// Module 8 (Position Sizing), stop/target enforcement, and position
+// mutation itself now live in core/paperTrading.js; these are thin
+// wrappers that supply app.js's state/DOM side effects (rendering,
+// status text, toasts, action log) around the pure logic there.
+function isCoolingDown(cooldownSeconds) {
+    return isCoolingDownCore(state.lastTradeAt, cooldownSeconds);
 }
 
-function isCoolingDown(cooldownSeconds) {
-    return Date.now() - state.lastTradeAt < cooldownSeconds * 1000;
+function calculatePositionPnl(markPrice) {
+    return calculatePositionPnlCore(state.paper, markPrice);
 }
 
 function executePaperTrade(signal, quantity) {
-    const price = signal.price;
-    const nextSide = signal.type === "BUY" ? "long" : "short";
-    const previousSide = state.paper.side;
-    let action = "Paper hold";
-
-    if (previousSide && previousSide !== nextSide) {
-        state.paper.realizedPnl += calculatePositionPnl(price);
-        if (state.paper.demoId) {
-            closePosition(state.paper.demoId, price, `Flipped ${previousSide} \u2192 ${nextSide}`);
-        }
-        state.paper.side = null;
-        state.paper.entry = null;
-        state.paper.quantity = 0;
-        state.paper.stopLoss = null;
-        state.paper.takeProfit = null;
-        state.paper.demoId = null;
-        action = `Paper closed ${previousSide}`;
-    }
-
-    if (state.paper.side !== nextSide) {
-        state.paper.side = nextSide;
-        state.paper.entry = price;
-        state.paper.quantity = quantity;
-        state.paper.stopLoss = signal.risk?.stopLoss ?? null;
-        state.paper.takeProfit = signal.risk?.takeProfit ?? null;
-        const opened = openPosition({
-            symbol: state.symbol,
-            strategy: STRATEGIES[state.strategy]?.label ?? state.strategy,
-            side: nextSide,
-            entryPrice: price,
-            quantity,
-            stopLoss: state.paper.stopLoss,
-            takeProfit: state.paper.takeProfit,
-            confidence: signal.confidence,
-            reason: signal.reason
-        });
-        state.paper.demoId = opened?.id ?? null;
-        action = `${action}; opened ${nextSide}`;
-    }
-
-    renderPaperAccount(price);
+    const result = executePaperTradeCore(state.paper, signal, quantity, {
+        symbol: state.symbol,
+        strategyLabel: STRATEGIES[state.strategy]?.label ?? state.strategy,
+        openPosition,
+        closePosition
+    });
+    renderPaperAccount(signal.price);
     renderDemoAccount();
-
-    return {
-        type: signal.type,
-        confidence: signal.confidence,
-        price,
-        quantity,
-        stopLoss: state.paper.stopLoss,
-        takeProfit: state.paper.takeProfit,
-        action
-    };
+    return result;
 }
 
 // Module 7 in action: the paper account enforces the ATR stop-loss and
 // R-multiple take-profit automatically on every tick, so the risk levels
 // shown in the signal panel aren't just informational for paper mode.
 function checkPaperStops(markPrice) {
-    const { side, stopLoss, takeProfit } = state.paper;
-    if (!side || !Number.isFinite(markPrice)) return;
-    if (!Number.isFinite(stopLoss) && !Number.isFinite(takeProfit)) return;
+    const outcome = checkPaperStopsCore(state.paper, markPrice, { closePosition });
+    if (!outcome) return;
 
-    const hitStop = Number.isFinite(stopLoss) && (
-        side === "long" ? markPrice <= stopLoss : markPrice >= stopLoss
-    );
-    const hitTarget = Number.isFinite(takeProfit) && (
-        side === "long" ? markPrice >= takeProfit : markPrice <= takeProfit
-    );
-
-    if (!hitStop && !hitTarget) return;
-
-    const pnl = calculatePositionPnl(markPrice);
-    state.paper.realizedPnl += pnl;
-    const closedSide = side;
-    const label = hitStop ? "Stop-loss hit" : "Take-profit hit";
-    if (state.paper.demoId) {
-        closePosition(state.paper.demoId, markPrice, label);
-        state.paper.demoId = null;
-    }
-    state.paper.side = null;
-    state.paper.entry = null;
-    state.paper.quantity = 0;
-    state.paper.stopLoss = null;
-    state.paper.takeProfit = null;
     renderPaperAccount(markPrice);
     renderDemoAccount();
 
+    const { label, pnl, closedSide } = outcome;
     const msg = `${label} on ${closedSide} — P/L: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`;
     setExecutionStatus(msg);
     showTradeResult({ status: "closed", reason: msg, price: markPrice });
@@ -753,21 +699,7 @@ function checkPaperStops(markPrice) {
 }
 
 function resetPaperAccount() {
-    if (state.paper.demoId) {
-        const lastPrice = state.candles.at(-1)?.close ?? state.paper.entry;
-        if (Number.isFinite(lastPrice)) {
-            closePosition(state.paper.demoId, lastPrice, "Market switched");
-        }
-    }
-    state.paper = {
-        side: null,
-        entry: null,
-        quantity: 0,
-        stopLoss: null,
-        takeProfit: null,
-        realizedPnl: 0,
-        demoId: null
-    };
+    resetPaperAccountCore(state.paper, state.candles.at(-1)?.close ?? state.paper.entry, { closePosition });
     state.lastTradeAt = 0;
     renderPaperAccount();
     renderDemoAccount();
@@ -814,59 +746,7 @@ function appendAction(item) {
 }
 
 function renderTester() {
-    if (!elements.testerBody || !elements.regimeBody || !elements.sessionBody || !elements.assetBody) return;
-
-    const leaderboard = tester.getLeaderboard();
-    elements.testerBody.innerHTML = leaderboard.length
-        ? leaderboard.map(row => `
-            <tr>
-                <td>${row.label}</td>
-                <td>${row.trades}</td>
-                <td>${formatNumber(row.winRate, 1)}%</td>
-                <td data-pnl="${row.totalPnl < 0 ? "loss" : row.totalPnl > 0 ? "gain" : "flat"}">${formatSigned(row.totalPnl)}%</td>
-                <td>${formatSigned(row.avgPnl)}%</td>
-            </tr>
-        `).join("")
-        : `<tr><td colspan="5" class="empty-history">No closed trades yet</td></tr>`;
-
-    const regimes = tester.getRegimeBreakdown();
-    elements.regimeBody.innerHTML = regimes.length
-        ? regimes.map(row => `
-            <tr>
-                <td>${row.label}</td>
-                <td>${row.regime}</td>
-                <td>${row.trades}</td>
-                <td>${formatNumber(row.winRate, 1)}%</td>
-                <td data-pnl="${row.totalPnl < 0 ? "loss" : row.totalPnl > 0 ? "gain" : "flat"}">${formatSigned(row.totalPnl)}%</td>
-            </tr>
-        `).join("")
-        : `<tr><td colspan="5" class="empty-history">No closed trades yet</td></tr>`;
-
-    const sessions = tester.getSessionBreakdown();
-    elements.sessionBody.innerHTML = sessions.length
-        ? sessions.map(row => `
-            <tr>
-                <td>${row.label}</td>
-                <td>${row.session}</td>
-                <td>${row.trades}</td>
-                <td>${formatNumber(row.winRate, 1)}%</td>
-                <td data-pnl="${row.totalPnl < 0 ? "loss" : row.totalPnl > 0 ? "gain" : "flat"}">${formatSigned(row.totalPnl)}%</td>
-            </tr>
-        `).join("")
-        : `<tr><td colspan="5" class="empty-history">No closed trades yet</td></tr>`;
-
-    const assets = tester.getAssetBreakdown();
-    elements.assetBody.innerHTML = assets.length
-        ? assets.map(row => `
-            <tr>
-                <td>${row.symbol}</td>
-                <td>${row.trades}</td>
-                <td>${formatNumber(row.winRate, 1)}%</td>
-                <td data-pnl="${row.totalPnl < 0 ? "loss" : row.totalPnl > 0 ? "gain" : "flat"}">${formatSigned(row.totalPnl)}%</td>
-                <td>${formatSigned(row.avgPnl)}%</td>
-            </tr>
-        `).join("")
-        : `<tr><td colspan="5" class="empty-history">No closed trades yet</td></tr>`;
+    renderTesterCore(elements, tester);
 }
 
 // Milestone: binary-mode outcome tracking. Every number here comes from a
@@ -874,67 +754,12 @@ function renderTester() {
 // N candles later) - buckets under the tracker's minimum sample size show
 // "not enough data" instead of a percentage, rather than displaying a
 // number that looks calibrated when it isn't.
-function intervalToMinutes(interval) {
-    const match = /^(\d+)([mhd])$/.exec(interval ?? "");
-    if (!match) return null;
-    const value = Number(match[1]);
-    const unit = match[2];
-    if (unit === "m") return value;
-    if (unit === "h") return value * 60;
-    if (unit === "d") return value * 60 * 24;
-    return null;
-}
-
-function expiryLabel(expiryLength) {
-    const minutesPerCandle = intervalToMinutes(state.interval);
-    if (!Number.isFinite(minutesPerCandle)) return `${expiryLength} candles`;
-    const totalMinutes = expiryLength * minutesPerCandle;
-    const timeLabel = totalMinutes >= 60
-        ? `${(totalMinutes / 60).toFixed(totalMinutes % 60 === 0 ? 0 : 1)}h`
-        : `${totalMinutes}m`;
-    return `${expiryLength} candles (~${timeLabel})`;
-}
-
 function renderBinaryStats() {
-    if (!elements.binaryStatsBody) return;
-
-    const payoutRatio = clampPayoutRatio(elements.payoutRatioInput?.value);
-    const stats = binaryTracker.getBinaryStats(undefined, payoutRatio);
-    elements.binaryStatsBody.innerHTML = stats.length
-        ? stats.map(row => `
-            <tr>
-                <td>${row.label}</td>
-                <td>${expiryLabel(row.expiryLength)}</td>
-                <td>${row.trades}</td>
-                <td>${row.reliable
-                    ? `${formatNumber(row.winRate, 1)}%`
-                    : `<span class="empty-history">not enough data (${row.trades}/${row.minSampleSize})</span>`}</td>
-                <td>${formatNumber(row.breakevenWinRate, 1)}%</td>
-                <td>${row.reliable ? `<span class="${edgeClass(row.edge)}">${formatSigned(row.edge)}%</span>` : "--"}</td>
-                <td><span class="badge ${verdictClass(row.verdict)}">${row.verdict}</span></td>
-            </tr>
-        `).join("")
-        : `<tr><td colspan="7" class="empty-history">No resolved binary trades yet</td></tr>`;
+    renderBinaryStatsCore(elements, binaryTracker, state.interval);
 }
 
-// Payout ratios outside (0, 1] aren't a real broker payout - fall back to
-// the 85% default rather than feeding a nonsense number into the edge math.
-function clampPayoutRatio(rawValue) {
-    const value = Number(rawValue);
-    if (!Number.isFinite(value) || value <= 0 || value > 1) return 0.85;
-    return value;
-}
-
-function edgeClass(edge) {
-    if (!Number.isFinite(edge)) return "";
-    return edge > 0 ? "edge-positive" : "edge-negative";
-}
-
-function verdictClass(verdict) {
-    if (!verdict) return "";
-    if (verdict.startsWith("Edge detected")) return "verdict-edge";
-    if (verdict.startsWith("No edge")) return "verdict-none";
-    return "verdict-inconclusive";
+function renderCalibrationCurve() {
+    renderCalibrationCurveCore(elements, binaryTracker);
 }
 
 // Historical backtest: fetches paginated real history, then replays it
@@ -942,6 +767,7 @@ function verdictClass(verdict) {
 // from `market`/`tester`/`binaryTracker` above - it never touches live
 // streaming state or the live Strategy Lab's persisted trades.
 let backtestRunning = false;
+let lastBacktestResult = null; // holds the most recent single-run result so the rolling-performance selector can re-render without re-running the backtest
 
 async function runBacktestFromUi() {
     if (backtestRunning || !elements.backtestRunBtn) return;
@@ -953,6 +779,8 @@ async function runBacktestFromUi() {
     const strategyIds = strategyChoice === "all" ? Object.keys(STRATEGIES) : [strategyChoice];
     const total = Number(elements.backtestLookback?.value ?? 1000);
     const payoutRatio = clampPayoutRatio(elements.backtestPayout?.value);
+    const isWalkForward = elements.backtestMode?.value === "walkforward";
+    const folds = Number(elements.backtestFolds?.value ?? 4);
 
     backtestRunning = true;
     elements.backtestRunBtn.disabled = true;
@@ -983,25 +811,49 @@ async function runBacktestFromUi() {
             }
         }
 
-        const result = await runBacktest(candles, {
+        const sharedOptions = {
             strategyIds,
             payoutRatio,
             dailyCandles,
-            onProgress: (done, runTotal) => {
-                setBacktestStatus(`Replaying candle ${done.toLocaleString()} / ${runTotal.toLocaleString()}...`);
+            // Without this, the backtest scored trades off raw candle
+            // prices - no spread, slippage, or fees - while the paper
+            // engine's numbers for the same strategy always included
+            // them. Passing the asset class here makes the two directly
+            // comparable again (see executionCosts.js).
+            assetClass: backtestAssetClass
+        };
+
+        if (isWalkForward) {
+            if (candles.length < folds * 2) {
+                setBacktestStatus(`Need at least ${folds * 2} candles for ${folds} folds — pick a larger lookback or fewer folds.`);
+                return;
             }
-        });
+            const result = await runWalkForwardBacktest(candles, { ...sharedOptions, folds });
+            renderWalkForwardResults(result, interval);
 
-        renderBacktestResults(result, interval);
+            setBacktestStatus(
+                `Done — ${folds} folds across ${candles.length.toLocaleString()} candles. `
+                + `Check the "Folds +" column below for consistency, not just the aggregate total.`
+            );
+        } else {
+            const result = await runBacktest(candles, {
+                ...sharedOptions,
+                onProgress: (done, runTotal) => {
+                    setBacktestStatus(`Replaying candle ${done.toLocaleString()} / ${runTotal.toLocaleString()}...`);
+                }
+            });
 
-        const from = new Date(result.meta.from).toLocaleString();
-        const to = new Date(result.meta.to).toLocaleString();
-        setBacktestStatus(
-            `Done — ${result.meta.candleCount.toLocaleString()} candles (${from} → ${to}), `
-            + `${result.meta.spotTrades} spot trades, ${result.meta.binaryTradesResolved} binary bets resolved`
-            + (result.meta.binaryTradesDropped ? `, ${result.meta.binaryTradesDropped} still pending past the last candle` : "")
-            + "."
-        );
+            renderBacktestResults(result, interval);
+
+            const from = new Date(result.meta.from).toLocaleString();
+            const to = new Date(result.meta.to).toLocaleString();
+            setBacktestStatus(
+                `Done — ${result.meta.candleCount.toLocaleString()} candles (${from} → ${to}), `
+                + `${result.meta.spotTrades} spot trades, ${result.meta.binaryTradesResolved} binary bets resolved`
+                + (result.meta.binaryTradesDropped ? `, ${result.meta.binaryTradesDropped} still pending past the last candle` : "")
+                + "."
+            );
+        }
     } catch (error) {
         setBacktestStatus(`Backtest failed: ${error.message}`);
     } finally {
@@ -1016,59 +868,84 @@ function setBacktestStatus(message) {
 }
 
 function renderBacktestResults(result, interval) {
-    if (elements.backtestLeaderboardBody) {
-        elements.backtestLeaderboardBody.innerHTML = result.spotLeaderboard.length
-            ? result.spotLeaderboard.map(row => `
-                <tr>
-                    <td>${row.label}</td>
-                    <td>${row.trades}</td>
-                    <td>${formatNumber(row.winRate, 1)}%</td>
-                    <td data-pnl="${row.totalPnl < 0 ? "loss" : row.totalPnl > 0 ? "gain" : "flat"}">${formatSigned(row.totalPnl)}%</td>
-                    <td>${formatSigned(row.avgPnl)}%</td>
-                    <td>${formatNumber(row.maxDrawdown, 1)}%</td>
-                </tr>
-            `).join("")
-            : `<tr><td colspan="6" class="empty-history">No trades in this window</td></tr>`;
+    if (elements.backtestSingleResults) elements.backtestSingleResults.hidden = false;
+    if (elements.backtestWalkForwardResults) elements.backtestWalkForwardResults.hidden = true;
+
+    lastBacktestResult = result;
+    populateRollingStrategySelect(result);
+    renderRollingPerformance();
+
+    renderBacktestResultsCore(elements, result, interval);
+}
+
+// Renders the walk-forward result set: one column per fold plus a
+// "Folds +" consistency count, so a strategy whose aggregate PnL is
+// really just one outlier fold is visible at a glance rather than
+// buried inside a single summed number.
+function renderWalkForwardResults(result, interval) {
+    if (elements.backtestSingleResults) elements.backtestSingleResults.hidden = true;
+    if (elements.backtestWalkForwardResults) elements.backtestWalkForwardResults.hidden = false;
+
+    lastBacktestResult = null; // rolling-performance table only applies to single runs
+
+    renderWalkForwardResultsCore(elements, result);
+}
+
+function populateRollingStrategySelect(result) {
+    if (!elements.rollingStrategySelect) return;
+    const previous = elements.rollingStrategySelect.value;
+    const strategyIds = Object.keys(result.spotTradesByStrategy ?? {});
+
+    elements.rollingStrategySelect.innerHTML = strategyIds
+        .map((id) => {
+            const label = result.spotLeaderboard.find((row) => row.strategy === id)?.label ?? id;
+            const tradeCount = result.spotTradesByStrategy[id]?.length ?? 0;
+            return `<option value="${id}">${label} (${tradeCount} trades)</option>`;
+        })
+        .join("");
+
+    // Keep the previously selected strategy if it's still in the new list.
+    if (strategyIds.includes(previous)) elements.rollingStrategySelect.value = previous;
+}
+
+// Rolling performance is trade-count-windowed, not calendar-time-windowed
+// - a strategy that only fires occasionally would have near-empty
+// calendar windows. windowSize/step are picked relative to how many
+// trades this run actually produced, so short backtests still show
+// *something* useful instead of an empty "not enough data" table.
+function renderRollingPerformance() {
+    if (!elements.rollingPerformanceBody) return;
+
+    if (!lastBacktestResult || !elements.rollingStrategySelect?.value) {
+        elements.rollingPerformanceBody.innerHTML = `<tr><td class="empty-history" colspan="3">Run a single backtest first (rolling performance isn't shown for walk-forward runs — each fold is already its own window).</td></tr>`;
+        return;
     }
 
-    if (elements.backtestBinaryBody) {
-        elements.backtestBinaryBody.innerHTML = result.binaryStats.length
-            ? result.binaryStats.map(row => `
-                <tr>
-                    <td>${row.label}</td>
-                    <td>${backtestExpiryLabel(row.expiryLength, interval)}</td>
-                    <td>${row.trades}</td>
-                    <td>${row.reliable
-                        ? `${formatNumber(row.winRate, 1)}%`
-                        : `<span class="empty-history">not enough data (${row.trades}/20)</span>`}</td>
-                    <td>${formatNumber(row.breakevenWinRate, 1)}%</td>
-                    <td>${row.reliable ? `<span class="${edgeClass(row.edge)}">${formatSigned(row.edge)}%</span>` : "--"}</td>
-                    <td><span class="badge ${verdictClass(row.verdict)}">${row.verdict}</span></td>
-                </tr>
-            `).join("")
-            : `<tr><td colspan="7" class="empty-history">No resolved binary bets in this window</td></tr>`;
+    const strategyId = elements.rollingStrategySelect.value;
+    const trades = lastBacktestResult.spotTradesByStrategy[strategyId] ?? [];
+
+    // Pick a window size that's roughly 1/5th of the sample (min 10, max
+    // 50) so short runs still produce a handful of windows instead of
+    // none, while long runs don't get one enormous window.
+    const windowSize = Math.max(10, Math.min(50, Math.floor(trades.length / 5)));
+    const step = Math.max(1, Math.floor(windowSize / 2));
+
+    const windows = computeRollingPerformance(trades, windowSize, step);
+
+    if (!windows.length) {
+        elements.rollingPerformanceBody.innerHTML = `<tr><td class="empty-history" colspan="3">Not enough trades for this strategy yet (need at least ${windowSize} — try a longer lookback)</td></tr>`;
+        return;
     }
+
+    elements.rollingPerformanceBody.innerHTML = windows.map((w) => `
+        <tr>
+            <td>${w.startIndex + 1}–${w.endIndex + 1}</td>
+            <td data-pnl="${w.totalPnl < 0 ? "loss" : w.totalPnl > 0 ? "gain" : "flat"}">${formatSigned(w.totalPnl)}%</td>
+            <td>${formatNumber(w.winRate, 1)}%</td>
+        </tr>
+    `).join("");
 }
 
-function backtestExpiryLabel(expiryLength, interval) {
-    const minutesPerCandle = intervalToMinutes(interval);
-    if (!Number.isFinite(minutesPerCandle)) return `${expiryLength} candles`;
-    const totalMinutes = expiryLength * minutesPerCandle;
-    const timeLabel = totalMinutes >= 60
-        ? `${(totalMinutes / 60).toFixed(totalMinutes % 60 === 0 ? 0 : 1)}h`
-        : `${totalMinutes}m`;
-    return `${expiryLength} candles (~${timeLabel})`;
-}
-
-function formatSigned(value) {
-    if (!Number.isFinite(value)) return "--";
-    const sign = value > 0 ? "+" : "";
-    return `${sign}${value.toFixed(2)}`;
-}
-
-// Top summary row (Today's Signals / Open Trades / Balance from the
-// reference design) - reads state/demo-account data that's already being
-// computed elsewhere; adds no new data sources of its own.
 function renderStatStrip() {
     if (elements.statSignalsCount) {
         elements.statSignalsCount.textContent = String(state.history.length);
@@ -1171,21 +1048,7 @@ function renderDemoLeaderboard() {
 }
 
 function getPaperPnl(markPrice) {
-    if (!state.paper.side || !Number.isFinite(markPrice)) {
-        return state.paper.realizedPnl;
-    }
-
-    return state.paper.realizedPnl + calculatePositionPnl(markPrice);
-}
-
-function calculatePositionPnl(markPrice) {
-    if (!state.paper.side || !state.paper.entry) return 0;
-
-    const difference = state.paper.side === "long"
-        ? markPrice - state.paper.entry
-        : state.paper.entry - markPrice;
-
-    return difference * state.paper.quantity;
+    return getPaperPnlCore(state.paper, markPrice);
 }
 
 function setExecutionStatus(message) {
@@ -1193,71 +1056,7 @@ function setExecutionStatus(message) {
 }
 
 function drawChart() {
-    const candles = state.candles.slice(-80);
-    const { width, height } = resizeCanvas();
-
-    ctx.clearRect(0, 0, width, height);
-
-    if (candles.length < 2) return;
-
-    const closes = candles.map(candle => candle.close);
-    const min = Math.min(...closes);
-    const max = Math.max(...closes);
-    const range = max - min || 1;
-    const xStep = width / (candles.length - 1);
-
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "#56d6a7";
-    ctx.beginPath();
-
-    candles.forEach((candle, index) => {
-        const x = index * xStep;
-        const y = height - (((candle.close - min) / range) * (height - 28)) - 14;
-
-        if (index === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    });
-
-    ctx.stroke();
-
-    ctx.fillStyle = "#475569";
-    ctx.font = "12px Arial";
-    ctx.fillText(formatPrice(max), 8, 16);
-    ctx.fillText(formatPrice(min), 8, height - 8);
-}
-
-function resizeCanvas() {
-    const pixelRatio = window.devicePixelRatio || 1;
-    const rect = elements.chart.getBoundingClientRect();
-    const width = Math.floor(rect.width * pixelRatio);
-    const height = Math.floor(rect.height * pixelRatio);
-
-    if (elements.chart.width !== width || elements.chart.height !== height) {
-        elements.chart.width = width;
-        elements.chart.height = height;
-    }
-
-    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-    return { width: rect.width, height: rect.height };
-}
-
-function formatPrice(value) {
-    if (!Number.isFinite(value)) return "--";
-    return value.toLocaleString(undefined, {
-        maximumFractionDigits: value >= 100 ? 2 : 6
-    });
-}
-
-function formatNumber(value, digits = 2) {
-    if (!Number.isFinite(value)) return "--";
-    return value.toFixed(digits);
-}
-
-function formatCurrency(value) {
-    return value.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
+    drawChartOnCanvas(elements.chart, ctx, state.candles);
 }
 
 window.addEventListener("resize", drawChart);

@@ -19,6 +19,7 @@ import { generateSignal, STRATEGIES } from "@signals/signalEngine.js";
 import { config } from "./config.js";
 import { fetchCandles } from "./candles.js";
 import { shouldOpen, checkExit } from "./virtualTrades.js";
+import { applyEntryCost } from "@analysis/executionCosts.js";
 import { evaluatePortfolioRisk } from "./portfolioRisk.js";
 import * as db from "./db.js";
 import { generateReport } from "./generateReport.js";
@@ -37,7 +38,7 @@ function isLikelyStillForming(candle, timeframe) {
     return Date.now() < candle.time + durationMs;
 }
 
-async function scanSymbol({ symbol, assetClass }) {
+export async function scanSymbol({ symbol, assetClass }) {
     let candles;
     try {
         candles = await fetchCandles({ symbol, assetClass, timeframe: config.timeframe, limit: config.candleLimit });
@@ -85,7 +86,9 @@ async function scanSymbol({ symbol, assetClass }) {
                 latestCandle,
                 candlesSinceOpen,
                 config.maxHoldCandles,
-                config.ambiguousFillRule
+                config.ambiguousFillRule,
+                trade.asset_class,
+                config.executionCosts
             );
 
             if (result) {
@@ -138,7 +141,7 @@ async function scanSymbol({ symbol, assetClass }) {
             type: signal.type,
             confidence: signal.confidence ?? null,
             quality: signal.quality ?? null,
-            entryPrice: signal.price ?? latestPrice,
+            entryPrice: applyEntryCost(signal.price ?? latestPrice, signal.type, assetClass, config.executionCosts),
             stopLoss: signal.risk?.stopLoss ?? null,
             takeProfit: signal.risk?.takeProfit ?? null,
             rewardMultiple: signal.risk?.rewardMultiple ?? null,
@@ -166,6 +169,8 @@ function isDue(target, now) {
     const last = lastPolled.get(target.symbol) ?? 0;
     return now - last >= interval;
 }
+
+export { isDue };
 
 async function scanAll() {
     console.log(`\n--- scan ${new Date().toLocaleString()} ---`);
@@ -216,7 +221,18 @@ async function main() {
     );
 }
 
-main().catch(err => {
-    console.error("Scheduler crashed:", err);
-    process.exit(1);
-});
+// Guarded so importing this module from a test (to exercise scanSymbol/
+// isDue directly) never kicks off the real polling loop, cron jobs, or
+// network calls. Deliberately an explicit opt-out env var rather than an
+// import.meta.url/process.argv[1] "am I the entry module" check: this
+// script is documented to run via `vite-node scripts/scheduler/
+// runScheduler.js`, and vite-node does not preserve the script path in
+// process.argv (it stays as vite-node's own binary path), so that check
+// would have silently disabled the scheduler under its real, documented
+// invocation. Tests set SCHEDULER_SKIP_AUTOSTART=1 before importing.
+if (process.env.SCHEDULER_SKIP_AUTOSTART !== "1") {
+    main().catch(err => {
+        console.error("Scheduler crashed:", err);
+        process.exit(1);
+    });
+}

@@ -39,8 +39,8 @@
         <div class="main">
             <header class="topbar" id="section-dashboard">
                 <div class="topbar-left">
+                    <h1>Welcome back, <span id="topbarUserName">Trader</span>! 👋</h1>
                     <p class="eyebrow" id="marketLabel">BTCUSDT · 1m live candles</p>
-                    <h1>Dracarys FX Pro</h1>
                 </div>
                 <div class="topbar-center">
                     <input type="search" class="search-bar" placeholder="Search pairs, strategies, signals..." aria-label="Search">
@@ -48,7 +48,7 @@
                 <div class="topbar-right">
                     <div class="status-pill" id="status">Disconnected</div>
                     <div id="themeSelector"></div>
-                    <button type="button" class="icon-btn" title="Notifications" aria-label="Notifications">🔔</button>
+                    <button type="button" class="icon-btn icon-btn--has-badge" title="Notifications" aria-label="Notifications">🔔<span class="notif-dot" aria-hidden="true"></span></button>
                     <button type="button" class="icon-btn" title="Cycle theme" aria-label="Theme">🎨</button>
                     <button type="button" class="icon-btn" title="Profile" aria-label="Profile">👤</button>
                 </div>
@@ -67,24 +67,83 @@
 
             <main class="dashboard">
                 <div class="page active" id="page-dashboard">
+                    <!--
+                        Market/strategy switcher. This used to live in the
+                        pre-redesign sidebar; the "upgrade-dashboard" visual
+                        pass (see archive/legacy-patches/upgrade-dashboard/)
+                        replaced that sidebar's markup but never re-added
+                        equivalents for #pairSelect/#strategySelect, which
+                        core/app.js references unconditionally at module
+                        load. That gap meant the app threw a TypeError on
+                        the very first script line touching them and never
+                        finished booting in an actual browser - caught here
+                        via the new app.js jsdom test suite, not by the
+                        build (bundling doesn't execute the code). See
+                        README "Known gaps" for the fix history.
+                    -->
+                    <section class="backtest-controls" aria-label="Market and strategy selection" style="margin-top: 0; margin-bottom: var(--sp-4);">
+                        <label>
+                            <span>Pair</span>
+                            <select id="pairSelect">
+                                <optgroup label="Crypto (Binance)">
+                                <option value="btcusdt" data-asset-class="crypto" data-api-symbol="BTC/USDT" selected>BTC/USDT</option>
+                                <option value="ethusdt" data-asset-class="crypto" data-api-symbol="ETH/USDT">ETH/USDT</option>
+                                <option value="bnbusdt" data-asset-class="crypto" data-api-symbol="BNB/USDT">BNB/USDT</option>
+                                <option value="solusdt" data-asset-class="crypto" data-api-symbol="SOL/USDT">SOL/USDT</option>
+                                <option value="xrpusdt" data-asset-class="crypto" data-api-symbol="XRP/USDT">XRP/USDT</option>
+                                <option value="adausdt" data-asset-class="crypto" data-api-symbol="ADA/USDT">ADA/USDT</option>
+                                <option value="dogeusdt" data-asset-class="crypto" data-api-symbol="DOGE/USDT">DOGE/USDT</option>
+                                </optgroup>
+                                <optgroup label="Forex (Twelve Data)">
+                                <option value="eurusd" data-asset-class="forex" data-api-symbol="EUR/USD">EUR/USD</option>
+                                <option value="gbpusd" data-asset-class="forex" data-api-symbol="GBP/USD">GBP/USD</option>
+                                <option value="usdjpy" data-asset-class="forex" data-api-symbol="USD/JPY">USD/JPY</option>
+                                <option value="audusd" data-asset-class="forex" data-api-symbol="AUD/USD">AUD/USD</option>
+                                <option value="usdcad" data-asset-class="forex" data-api-symbol="USD/CAD">USD/CAD</option>
+                                <option value="usdchf" data-asset-class="forex" data-api-symbol="USD/CHF">USD/CHF</option>
+                                <option value="nzdusd" data-asset-class="forex" data-api-symbol="NZD/USD">NZD/USD</option>
+                                </optgroup>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Strategy</span>
+                            <select id="strategySelect">
+                                <option value="balanced" selected>Balanced</option>
+                                <option value="trend">Trend Follow</option>
+                                <option value="meanReversion">Mean Reversion</option>
+                                <option value="breakout">Breakout</option>
+                                <option value="scalping">Scalping</option>
+                                <option value="pullback">Pullback (Fib)</option>
+                                <option value="momentum">Momentum</option>
+                                <option value="range">Range Trading</option>
+                                <option value="ema165SarRoc">EMA165 SAR ROC21</option>
+                                <option value="trendFollowing2">Trend Following 2 (EMA 50/200)</option>
+                                <option value="breakout2">Breakout 2 (Volume Confirmed)</option>
+                                <option value="meanReversion2">Mean Reversion 2 (RSI Range)</option>
+                                <option value="emaPullbackAdx">EMA Pullback (ADX Filter)</option>
+                                <option value="aiConfidence">AI Confidence Pipeline</option>
+                            </select>
+                        </label>
+                    </section>
+
                     <!-- KPI Cards -->
                     <section class="kpi-grid" aria-label="Key metrics">
-                        <article class="kpi-card">
+                        <article class="kpi-card kpi-card--blue">
                             <p class="kpi-label">Portfolio</p>
                             <div class="kpi-value" id="statAccountBalance">$10,000.00</div>
                             <p class="kpi-sub" id="statAccountBalanceSub">+0.00% today</p>
                         </article>
-                        <article class="kpi-card">
+                        <article class="kpi-card kpi-card--green">
                             <p class="kpi-label">PnL</p>
                             <div class="kpi-value" id="statPnl">+$0.00</div>
                             <p class="kpi-sub">Session total</p>
                         </article>
-                        <article class="kpi-card">
+                        <article class="kpi-card kpi-card--orange">
                             <p class="kpi-label">Win Rate</p>
                             <div class="kpi-value" id="statWinRate">0%</div>
                             <p class="kpi-sub">Closed trades</p>
                         </article>
-                        <article class="kpi-card">
+                        <article class="kpi-card kpi-card--purple">
                             <p class="kpi-label">Signals</p>
                             <div class="kpi-value" id="statSignalsCount">0</div>
                             <p class="kpi-sub">This session</p>
@@ -117,11 +176,40 @@
 
                     <!-- Bottom Cards -->
                     <div class="bottom-grid">
+                        <!-- Market Overview -->
+                        <div class="bottom-card">
+                            <div class="bottom-card-header">
+                                <h2 class="bottom-card-title">Market Overview</h2>
+                                <a href="#" class="view-all-link" onclick="return false;">View All</a>
+                            </div>
+                            <div class="bottom-card-body">
+                                <div class="data-strip" id="section-market">
+                                    <div class="data-cell"><span>RSI</span><strong id="rsi">--</strong></div>
+                                    <div class="data-cell"><span>ADX</span><strong id="adx">--</strong></div>
+                                    <div class="data-cell"><span>MACD Hist</span><strong id="macd">--</strong></div>
+                                    <div class="data-cell"><span>Pattern</span><strong id="pattern">none</strong></div>
+                                    <div class="data-cell"><span>Strategy</span><strong id="strategyName">Balanced</strong></div>
+                                    <div class="data-cell"><span>Quality</span><strong id="quality">--</strong></div>
+                                    <div class="data-cell"><span>Volatility</span><strong id="volatility">--</strong></div>
+                                    <div class="data-cell"><span>Volume</span><strong id="volumeRatio">--</strong></div>
+                                    <div class="data-cell"><span>Daily Trend</span><strong id="htfTrend">--</strong></div>
+                                    <div class="data-cell"><span>Entry</span><strong id="entryPrice">--</strong></div>
+                                    <div class="data-cell"><span>Stop</span><strong id="stopLoss">--</strong></div>
+                                    <div class="data-cell"><span>TP1</span><strong id="takeProfit1">--</strong></div>
+                                    <div class="data-cell"><span>TP2</span><strong id="takeProfit">--</strong></div>
+                                    <div class="data-cell"><span>R:R</span><strong id="riskReward">--</strong></div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Signals -->
                         <div class="bottom-card">
                             <div class="bottom-card-header">
-                                <h2 class="bottom-card-title">Signals</h2>
-                                <span class="badge purple" id="signalBadge">HOLD</span>
+                                <h2 class="bottom-card-title">Top Signals</h2>
+                                <div class="bottom-card-header-right">
+                                    <span class="badge purple" id="signalBadge">HOLD</span>
+                                    <a href="#" class="view-all-link" onclick="return false;">View All</a>
+                                </div>
                             </div>
                             <div class="bottom-card-body">
                                 <div class="signal-panel">
@@ -156,35 +244,11 @@
                             </div>
                         </div>
 
-                        <!-- Market Overview -->
-                        <div class="bottom-card">
-                            <div class="bottom-card-header">
-                                <h2 class="bottom-card-title">Market Overview</h2>
-                            </div>
-                            <div class="bottom-card-body">
-                                <div class="data-strip" id="section-market">
-                                    <div class="data-cell"><span>RSI</span><strong id="rsi">--</strong></div>
-                                    <div class="data-cell"><span>ADX</span><strong id="adx">--</strong></div>
-                                    <div class="data-cell"><span>MACD Hist</span><strong id="macd">--</strong></div>
-                                    <div class="data-cell"><span>Pattern</span><strong id="pattern">none</strong></div>
-                                    <div class="data-cell"><span>Strategy</span><strong id="strategyName">Balanced</strong></div>
-                                    <div class="data-cell"><span>Quality</span><strong id="quality">--</strong></div>
-                                    <div class="data-cell"><span>Volatility</span><strong id="volatility">--</strong></div>
-                                    <div class="data-cell"><span>Volume</span><strong id="volumeRatio">--</strong></div>
-                                    <div class="data-cell"><span>Daily Trend</span><strong id="htfTrend">--</strong></div>
-                                    <div class="data-cell"><span>Entry</span><strong id="entryPrice">--</strong></div>
-                                    <div class="data-cell"><span>Stop</span><strong id="stopLoss">--</strong></div>
-                                    <div class="data-cell"><span>TP1</span><strong id="takeProfit1">--</strong></div>
-                                    <div class="data-cell"><span>TP2</span><strong id="takeProfit">--</strong></div>
-                                    <div class="data-cell"><span>R:R</span><strong id="riskReward">--</strong></div>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Recent Trades -->
                         <div class="bottom-card">
                             <div class="bottom-card-header">
                                 <h2 class="bottom-card-title">Recent Trades</h2>
+                                <a href="#" class="view-all-link" onclick="return false;">View All</a>
                             </div>
                             <div class="bottom-card-body">
                                 <div class="history-list" id="historyList"></div>
@@ -194,8 +258,8 @@
                         <!-- AI Assistant -->
                         <div class="bottom-card">
                             <div class="bottom-card-header">
-                                <h2 class="bottom-card-title">AI Assistant</h2>
-                                <span class="badge purple">AI</span>
+                                <h2 class="bottom-card-title">AI Insight</h2>
+                                <span class="badge purple">🐲 AI</span>
                             </div>
                             <div class="bottom-card-body">
                                 <p class="subtle">AI-powered insights and analysis will appear here.</p>
@@ -529,18 +593,34 @@
                                 <span>Payout</span>
                                 <input type="number" id="backtestPayout" min="0" max="1" step="0.01" value="0.85">
                             </label>
+                            <label>
+                                <span>Mode</span>
+                                <select id="backtestMode">
+                                    <option value="single" selected>Single run</option>
+                                    <option value="walkforward">Walk-forward</option>
+                                </select>
+                            </label>
+                            <label id="backtestFoldsWrap" hidden>
+                                <span>Folds</span>
+                                <select id="backtestFolds">
+                                    <option value="2">2 (in-sample / out-of-sample)</option>
+                                    <option value="3">3</option>
+                                    <option value="4" selected>4</option>
+                                    <option value="6">6</option>
+                                </select>
+                            </label>
                             <button id="backtestRunBtn" type="button">Run Backtest</button>
                         </div>
                         <p class="subtle" id="backtestStatus">Pick a pair, interval and lookback, then run.</p>
 
-                        <div class="lab-tables">
+                        <div class="lab-tables" id="backtestSingleResults">
                             <div class="lab-table-wrap">
                                 <p class="label">Backtest · Spot-Style Leaderboard</p>
                                 <table class="lab-table">
                                     <thead>
-                                        <tr><th>Strategy</th><th>Trades</th><th>Win %</th><th>Total PnL</th><th>Avg PnL</th><th>Max Drawdown</th></tr>
+                                        <tr><th>Strategy</th><th>Trades</th><th>Win %</th><th>Total PnL</th><th>Avg PnL</th><th>Expectancy</th><th>Profit Factor</th><th>Max Drawdown</th><th>Sharpe</th><th>Win % 95% CI</th></tr>
                                     </thead>
-                                    <tbody id="backtestLeaderboardBody"><tr><td class="empty-history" colspan="6">No backtest run yet.</td></tr></tbody>
+                                    <tbody id="backtestLeaderboardBody"><tr><td class="empty-history" colspan="10">No backtest run yet.</td></tr></tbody>
                                 </table>
                             </div>
 
@@ -552,6 +632,35 @@
                                     </thead>
                                     <tbody id="backtestBinaryBody"><tr><td class="empty-history" colspan="7">No backtest run yet.</td></tr></tbody>
                                 </table>
+                            </div>
+
+                            <div class="lab-table-wrap">
+                                <div class="lab-table-head-row">
+                                    <p class="label">Rolling Performance (trailing-trade windows within this run)</p>
+                                    <label>
+                                        <span>Strategy</span>
+                                        <select id="rollingStrategySelect"></select>
+                                    </label>
+                                </div>
+                                <p class="subtle">Is this strategy's edge stable, or was it front-loaded/back-loaded within the sample? Each row is a trailing window of trades (not calendar time), sliding forward — a strategy whose PnL and win rate stay roughly flat window to window is more trustworthy than one that's all green early and all red late (or vice versa).</p>
+                                <table class="lab-table">
+                                    <thead>
+                                        <tr><th>Trades</th><th>Window PnL</th><th>Win %</th></tr>
+                                    </thead>
+                                    <tbody id="rollingPerformanceBody"><tr><td class="empty-history" colspan="3">Run a backtest first.</td></tr></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="lab-tables" id="backtestWalkForwardResults" hidden>
+                            <div class="lab-table-wrap">
+                                <p class="label">Walk-Forward · Spot PnL by Fold (chronological, non-overlapping, no lookahead)</p>
+                                <p class="subtle" id="backtestWalkForwardRanges"></p>
+                                <table class="lab-table">
+                                    <thead id="backtestWalkForwardHead"></thead>
+                                    <tbody id="backtestWalkForwardBody"><tr><td class="empty-history">No walk-forward run yet.</td></tr></tbody>
+                                </table>
+                                <p class="subtle">"Folds +" = how many of the folds that strategy was net positive in. A strategy dominated by one lucky fold is less trustworthy than one that's consistently positive across most folds, even if the aggregate totals look similar.</p>
                             </div>
                         </div>
                     </section>
@@ -620,6 +729,18 @@
                                         <tr><th>Strategy</th><th>Expiry</th><th>Trades</th><th>Win %</th><th>Breakeven</th><th>Edge</th><th>Verdict</th></tr>
                                     </thead>
                                     <tbody id="binaryStatsBody"></tbody>
+                                </table>
+                                <p class="subtle">Scoped to the current symbol — stats no longer pool win rates across different pairs under the same strategy/expiry bucket.</p>
+                            </div>
+
+                            <div class="lab-table-wrap">
+                                <p class="label">Confidence Calibration</p>
+                                <p class="subtle">Does a stated confidence number mean what it claims? Each row buckets resolved binary bets by the confidence the model reported at entry, and shows what actually happened. A well-calibrated model's "Actual Win %" tracks its "Predicted" range; if 70-75%-confidence bets only won 55% of the time, that gap is exactly what re-calibration should close (see the review's "Signal Distribution vs. Probability" note).</p>
+                                <table class="lab-table">
+                                    <thead>
+                                        <tr><th>Predicted Confidence</th><th>Trades</th><th>Actual Win %</th><th>Gap</th></tr>
+                                    </thead>
+                                    <tbody id="calibrationBody"></tbody>
                                 </table>
                             </div>
 

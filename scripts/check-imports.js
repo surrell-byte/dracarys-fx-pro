@@ -18,7 +18,13 @@ import { fileURLToPath, pathToFileURL } from "url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const VITE_CONFIG_PATH = resolve(ROOT, "frontend/vite.config.js");
-const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build"]);
+const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", "archive"]);
+// Any directory matching this prefix is a timestamped fix-backup snapshot
+// (see apply_dracarys_fixes.sh / apply_phase3_5_fixes.sh) - it's a copy of
+// old file versions for rollback purposes, not live source, so broken
+// imports inside it (from files that reference siblings that were moved
+// or renamed since the snapshot was taken) are expected and not real bugs.
+const SKIP_DIR_PREFIXES = [".dracarys-fix-backup-"];
 const JS_EXTENSIONS = [".js", ".mjs", ".cjs"];
 
 // Matches: import ... from "x"   export ... from "x"   import("x")
@@ -39,6 +45,7 @@ async function loadAliases() {
 function walk(dir, files = []) {
     for (const entry of readdirSync(dir)) {
         if (SKIP_DIRS.has(entry)) continue;
+        if (SKIP_DIR_PREFIXES.some((prefix) => entry.startsWith(prefix))) continue;
         const full = join(dir, entry);
         const stats = statSync(full);
         if (stats.isDirectory()) {

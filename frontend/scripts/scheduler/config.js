@@ -85,5 +85,14 @@ export const config = {
     // default used for local dev. Falls back to the original paths when
     // the env vars aren't set, so nothing changes for local `npm run scheduler`.
     dbPath: process.env.SCHEDULER_DB_PATH || new URL("../../data/signals.db", import.meta.url).pathname,
-    reportsDir: process.env.SCHEDULER_REPORTS_DIR || new URL("../../reports", import.meta.url).pathname
+    reportsDir: process.env.SCHEDULER_REPORTS_DIR || new URL("../../reports", import.meta.url).pathname,
+
+    // Per-asset-class execution cost assumptions, applied identically to
+    // live paper trading and backtests via executionCosts.js. Override
+    // any subset here; unspecified asset classes fall back to
+    // DEFAULT_EXECUTION_COSTS in that file.
+    executionCosts: {
+        crypto: { spreadPct: 0.0005, slippagePct: 0.0003, feePct: 0.002 },
+        forex: { spreadPct: 0.0002, slippagePct: 0.0001, feePct: 0.0000 }
+    }
 };
