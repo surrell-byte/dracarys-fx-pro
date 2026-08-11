@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.22.2 <23"
+  },
   "scripts": {
     "check-imports": "node scripts/check-imports.js",
     "predev": "npm run check-imports",
     "dev": "npm --prefix frontend run dev",
-    "build": "npm run check-imports && npm --prefix frontend run build"
+    "build": "npm run check-imports && npm --prefix frontend run build",
+    "verify:build": "npm run build && node scripts/verify-build.js",
+    "verify": "npm run check-imports && npm test && npm run verify:build"
   }
 }

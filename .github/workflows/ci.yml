@@ -14,9 +14,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22.22.2"
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Show runtime
+        run: |
+          node --version
+          npm --version
 
       - name: Install frontend dependencies
         working-directory: frontend
@@ -35,3 +40,6 @@ jobs:
       - name: Build
         working-directory: frontend
         run: npm run build
+
+      - name: Verify production build
+        run: node scripts/verify-build.js

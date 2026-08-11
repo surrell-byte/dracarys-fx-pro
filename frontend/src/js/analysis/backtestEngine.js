@@ -202,7 +202,9 @@ export async function runBacktest(candles, options = {}) {
                     entry: position.entry,
                     exit: filledExit,
                     pnlPercent,
-                    closedAt: candleTime
+                    closedAt: candleTime,
+                    confidence: position.confidence ?? null,
+                    outcome: pnlPercent >= 0 ? "win" : "loss"
                 });
             }
             if (position.side !== nextSide) {
@@ -211,6 +213,11 @@ export async function runBacktest(candles, options = {}) {
                 position.entry = assetClass
                     ? applyEntryCost(signal.price, entryType, assetClass, costs)
                     : signal.price;
+                // Captured at trade-open time so calibration.js can later
+                // compare predicted confidence to the realised outcome above.
+                position.confidence = Number.isFinite(signal.confidence)
+                    ? signal.confidence
+                    : null;
             }
 
             // -- binary model: fresh fixed-expiry bet only on a direction change --

@@ -18,6 +18,10 @@ export const DEFAULT_EXECUTION_COSTS = {
 };
 
 function costsFor(assetClass, costs) {
+    if (costs && typeof costs === "object" && Object.prototype.hasOwnProperty.call(costs, "spreadPct")) {
+        return costs;
+    }
+
     const table = costs || DEFAULT_EXECUTION_COSTS;
     return table[assetClass] || table.crypto;
 }

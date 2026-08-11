@@ -19,7 +19,7 @@ import { generateSignal, STRATEGIES } from "@signals/signalEngine.js";
 import { config } from "./config.js";
 import { fetchCandles } from "./candles.js";
 import { shouldOpen, checkExit } from "./virtualTrades.js";
-import { applyEntryCost } from "@analysis/executionCosts.js";
+import { createEntryFill } from "@analysis/executionSimulator.js";
 import { evaluatePortfolioRisk } from "./portfolioRisk.js";
 import * as db from "./db.js";
 import { generateReport } from "./generateReport.js";
@@ -141,17 +141,11 @@ export async function scanSymbol({ symbol, assetClass }) {
             type: signal.type,
             confidence: signal.confidence ?? null,
             quality: signal.quality ?? null,
-            entryPrice: applyEntryCost(signal.price ?? latestPrice, signal.type, assetClass, config.executionCosts),
-            stopLoss: signal.risk?.stopLoss ?? null,
-            takeProfit: signal.risk?.takeProfit ?? null,
-            rewardMultiple: signal.risk?.rewardMultiple ?? null,
-            regime: signal.regime?.primary ?? null,
-            reason: signal.reason ?? "",
-            expiryLabel: signal.expiry?.label ?? null,
-            expiryMinutes: signal.expiry?.minutes ?? null
-        });
-
-        console.log(
+                entryPrice: createEntryFill({
+                    signal: { type: signal.type, price: signal.price ?? latestPrice },
+                    assetClass,
+                    costs: config.executionCosts
+                }),
             `[${symbol}] opened ${signal.strategy} #${id}: ${signal.type} @ ${signal.price} ` +
             `(confidence ${signal.confidence}, ${signal.quality})`
         );

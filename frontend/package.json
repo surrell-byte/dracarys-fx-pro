@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.22.2 <23"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -12,7 +15,9 @@
     "scheduler": "vite-node -c vite.config.js scripts/scheduler/runScheduler.js",
     "smc-ablation": "vite-node -c vite.config.js scripts/analysis/smcAblationTest.js",
     "report": "vite-node -c vite.config.js scripts/scheduler/cli-report.js",
-    "reports-server": "vite-node -c vite.config.js scripts/scheduler/reportServer.js"
+    "reports-server": "vite-node -c vite.config.js scripts/scheduler/reportServer.js",
+    "walk-forward": "vite-node -c vite.config.js scripts/analysis/multiMarketWalkForward.js",
+    "scorecards": "vite-node -c vite.config.js scripts/analysis/buildScorecards.js"
   },
   "devDependencies": {
     "jsdom": "^30.0.1",
