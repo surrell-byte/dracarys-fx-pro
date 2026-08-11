@@ -48,6 +48,11 @@ else
 fi
 
 echo "== Writing Caddyfile (reverse proxy 443 -> localhost:8787) =="
+# Back up existing Caddyfile if present
+if [ -f /etc/caddy/Caddyfile ]; then
+    sudo cp /etc/caddy/Caddyfile "/etc/caddy/Caddyfile.bak.$(date +%Y%m%d%H%M%S)"
+fi
+
 sudo tee /etc/caddy/Caddyfile > /dev/null << EOF
 ${NIP_DOMAIN} {
 	reverse_proxy localhost:8787
@@ -69,6 +74,9 @@ echo "This is the URL to use in the Vercel dashboard's API calls (see"
 echo "the dashboard setup script) - it replaces the old"
 echo "http://${PUBLIC_IP}:8787 URL, which still works but isn't secure"
 echo "and won't be fetchable from your HTTPS Vercel site."
+echo ""
+echo "Verify certificate:"
+echo "  curl -sI https://${NIP_DOMAIN} | head -5"
 echo ""
 echo "Check status:  sudo systemctl status caddy"
 echo "Live logs:     journalctl -u caddy -f"

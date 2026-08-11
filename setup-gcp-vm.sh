@@ -20,9 +20,18 @@ if [ ! -d "$PROJECT_DIR/frontend" ]; then
     exit 1
 fi
 
+# Ensure data directory exists for scheduler logs
+mkdir -p "$PROJECT_DIR/frontend/data"
+
 echo "== Installing npm dependencies (native modules built fresh for this server) =="
 cd "$PROJECT_DIR/frontend"
-npm install
+npm install --include=dev
+
+# Validate required files exist
+if [ ! -f "$PROJECT_DIR/frontend/vite.config.js" ]; then
+    echo "ERROR: vite.config.js not found in frontend/. The scheduler requires it."
+    exit 1
+fi
 
 echo "== Registering systemd service =="
 NPM_BIN="$(command -v npm)"
@@ -51,6 +60,16 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable "$SERVICE_NAME"
 sudo systemctl restart "$SERVICE_NAME"
+
+# Post-start health check
+sleep 3
+if ! sudo systemctl is-active --quiet "$SERVICE_NAME"; then
+    echo ""
+    echo "ERROR: scheduler service failed to start. Check logs with:"
+    echo "  sudo systemctl status ${SERVICE_NAME}"
+    echo "  journalctl -u ${SERVICE_NAME} -n 50"
+    exit 1
+fi
 
 echo ""
 echo "Done. The scheduler is now running as a systemd service that:"
