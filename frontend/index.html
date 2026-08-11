@@ -308,7 +308,7 @@
                             <canvas id="chart-market" aria-label="Market overview chart"></canvas>
                         </section>
 
-                        <section class="data-strip" style="margin-top: var(--sp-4);">
+                        <section class="data-strip data-strip--spaced">
                             <div class="data-cell"><span>RSI</span><strong id="rsi-market">--</strong></div>
                             <div class="data-cell"><span>ADX</span><strong id="adx-market">--</strong></div>
                             <div class="data-cell"><span>MACD Hist</span><strong id="macd-market">--</strong></div>
@@ -764,7 +764,7 @@
                         </div>
                         <p class="subtle">Closed demo trades bucketed by calendar week, most recent first.</p>
                         <div id="weeklyReportsSummary" class="stat-strip"></div>
-                        <div class="lab-table-wrap" style="margin-top: var(--sp-4);">
+                        <div class="lab-table-wrap lab-table-wrap--spaced">
                             <table class="lab-table">
                                 <thead>
                                     <tr><th>Week</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>Net P/L</th></tr>
@@ -787,32 +787,32 @@
                         </div>
                         <p class="subtle">Local prefs saved to this browser only. Demo account data is reset separately.</p>
 
-                        <div class="form-grid" style="margin-top: var(--sp-4); max-width: 720px;">
-                            <label style="grid-column: 1 / -1;">
+                        <div class="form-grid settings-form-grid">
+                            <label class="form-grid--full">
                                 <span>Display name</span>
                                 <input id="settingsDisplayName" type="text" placeholder="Trader">
                             </label>
 
-                            <label class="switch" style="grid-column: 1 / -1;">
+                            <label class="switch form-grid--full">
                                 <input id="settingsPresentationMode" type="checkbox">
                                 <span></span>
                                 <strong>Presentation Mode (larger text, simplified nav)</strong>
                             </label>
 
-                            <label class="switch" style="grid-column: 1 / -1;">
+                            <label class="switch form-grid--full">
                                 <input id="settingsNotifications" type="checkbox">
                                 <span></span>
                                 <strong>Show notification dot in header</strong>
                             </label>
 
-                            <label class="switch" style="grid-column: 1 / -1;">
+                            <label class="switch form-grid--full">
                                 <input id="settingsReduceMotion" type="checkbox">
                                 <span></span>
                                 <strong>Reduce motion</strong>
                             </label>
                         </div>
 
-                        <div class="section-head" style="margin-top: var(--sp-6);">
+                        <div class="section-head section-head--spaced">
                             <div>
                                 <p class="label">Danger zone</p>
                                 <h2>Reset Demo Data</h2>

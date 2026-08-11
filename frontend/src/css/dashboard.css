@@ -618,6 +618,10 @@ canvas {
     overflow: hidden;
 }
 
+.data-strip--spaced {
+    margin-top: var(--sp-4);
+}
+
 .data-cell {
     display: flex;
     flex-direction: column;

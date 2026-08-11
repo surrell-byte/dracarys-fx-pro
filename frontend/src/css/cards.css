@@ -241,6 +241,19 @@ button.success:hover:not(:disabled) {
     gap: var(--sp-3);
 }
 
+.form-grid--full {
+    grid-column: 1 / -1;
+}
+
+.settings-form-grid {
+    margin-top: var(--sp-4);
+    max-width: 720px;
+}
+
+.section-head--spaced {
+    margin-top: var(--sp-6);
+}
+
 .form-grid label {
     display: grid;
     gap: var(--sp-1);
@@ -484,6 +497,10 @@ select {
     background: var(--bg-secondary);
     padding: var(--sp-3);
     overflow-x: auto;
+}
+
+.lab-table-wrap--spaced {
+    margin-top: var(--sp-4);
 }
 
 .lab-table-wrap .label {
