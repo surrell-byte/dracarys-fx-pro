@@ -140,6 +140,12 @@ h1 {
     position: relative;
 }
 
+.icon-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+}
+
 .icon-btn--has-badge {
     padding-right: 0;
 }
@@ -805,6 +811,12 @@ canvas {
     font-weight: 600;
     letter-spacing: 0.03em;
     color: var(--text-secondary);
+}
+
+.badge svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
 }
 
 .badge.green {

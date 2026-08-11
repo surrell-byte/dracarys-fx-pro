@@ -388,3 +388,110 @@
     from { opacity: 0; transform: scale(0.985); }
     to { opacity: 1; transform: scale(1); }
 }
+
+/* ==========================================================================
+   Theme Gallery Page
+   ========================================================================== */
+
+.theme-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--sp-4);
+    margin-top: var(--sp-4);
+}
+
+.theme-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--panel);
+    color: var(--text);
+    font-family: var(--font-display);
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.theme-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--primary);
+}
+
+.theme-card--active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.15);
+}
+
+.theme-card-preview {
+    display: block;
+    width: 100%;
+    height: 80px;
+    border-radius: var(--radius-soft);
+    border: 1px solid var(--line);
+    overflow: hidden;
+}
+
+.theme-card-preview-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.theme-card-preview-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}
+
+.theme-card-name {
+    font-size: var(--text-body);
+    font-weight: 600;
+    text-align: center;
+}
+
+.theme-card-check {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    font-size: var(--text-small);
+    font-weight: 600;
+    color: var(--success);
+}
+
+.theme-card-check svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+}
+
+/* ==========================================================================
+   Reduce Motion + Quick Button Centering
+   ========================================================================== */
+
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+}
+
+#quickTheme,
+#quickPresentation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#quickTheme svg,
+#quickPresentation svg {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+}
