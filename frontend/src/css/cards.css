@@ -250,6 +250,12 @@ button.success:hover:not(:disabled) {
     max-width: 720px;
 }
 
+@media (max-width: 640px) {
+    .settings-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .section-head--spaced {
     margin-top: var(--sp-6);
 }
