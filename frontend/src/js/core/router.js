@@ -55,8 +55,9 @@ function navigate(pageId, { replace = false } = {}) {
 
 if (menu && buttons.length) {
     buttons.forEach((btn) => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", (event) => {
             if (btn.disabled || !btn.dataset.target) return;
+            event.preventDefault();
             navigate(btn.dataset.target);
         });
     });
@@ -66,7 +67,7 @@ if (menu && buttons.length) {
         showPage(pageId);
     });
 
-    // Initial load: honor whatever path the user landed on (deep link,
-    // refresh, or back/forward into this session).
     navigate(pageIdForPath(location.pathname), { replace: true });
+} else {
+    console.warn("[router] #sideMenu or buttons missing - sidebar navigation disabled.");
 }
