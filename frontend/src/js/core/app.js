@@ -93,6 +93,7 @@ const elements = {
     volatility: document.querySelector("#volatility"),
     volumeRatio: document.querySelector("#volumeRatio"),
     chart: document.querySelector("#chart"),
+    chartFullscreenBtn: document.querySelector("#chartFullscreenBtn"),
     autoTrade: document.querySelector("#autoTrade"),
     tradeSize: document.querySelector("#tradeSize"),
     maxLoss: document.querySelector("#maxLoss"),
@@ -1060,6 +1061,52 @@ function drawChart() {
 }
 
 window.addEventListener("resize", drawChart);
+
+elements.chartFullscreenBtn?.addEventListener("click", () => {
+    const container = elements.chartFullscreenBtn.closest(".chart-container");
+    if (!container) return;
+
+    if (document.fullscreenElement) {
+        document.exitFullscreen?.();
+        return;
+    }
+    if (container.classList.contains("is-fullscreen-fallback")) {
+        container.classList.remove("is-fullscreen-fallback");
+        drawChart();
+        return;
+    }
+
+    if (container.requestFullscreen) {
+        container.requestFullscreen().catch(() => {
+            container.classList.add("is-fullscreen-fallback");
+            drawChart();
+        });
+    } else {
+        container.classList.add("is-fullscreen-fallback");
+        drawChart();
+    }
+});
+
+document.addEventListener("fullscreenchange", () => {
+    const container = document.querySelector(".chart-container");
+    if (!container) return;
+    if (document.fullscreenElement === container) {
+        elements.chartFullscreenBtn?.setAttribute("title", "Exit fullscreen");
+    } else {
+        elements.chartFullscreenBtn?.setAttribute("title", "Fullscreen");
+    }
+});
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        const fallback = document.querySelector(".chart-container.is-fullscreen-fallback");
+        if (fallback) {
+            fallback.classList.remove("is-fullscreen-fallback");
+            drawChart();
+        }
+    }
+});
+
 renderHistory();
 renderTester();
 renderBinaryStats();

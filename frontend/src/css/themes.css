@@ -46,6 +46,12 @@
     --panel: #101613;
     --panel-soft: #141c18;
 
+    /* bridge to base tokens used across dashboard/chart/cards CSS */
+    --bg: var(--ink);
+    --bg-secondary: var(--ink-deep);
+    --text: var(--paper);
+    --text-secondary: var(--steel);
+
     --paper: #eef2ef;
     --steel: #8fa39a;
     --steel-rgb: 143, 163, 154;
@@ -77,6 +83,12 @@
     --panel: #14110d;
     --panel-soft: #1a1611;
 
+    /* bridge to base tokens used across dashboard/chart/cards CSS */
+    --bg: var(--ink);
+    --bg-secondary: var(--ink-deep);
+    --text: var(--paper);
+    --text-secondary: var(--steel);
+
     --paper: #f3ead8;
     --steel: #9a8f7e;
     --steel-rgb: 154, 143, 126;
@@ -99,6 +111,12 @@
     --ink-deep: #000000;
     --panel: #0d0d0d;
     --panel-soft: #141414;
+
+    /* bridge to base tokens used across dashboard/chart/cards CSS */
+    --bg: var(--ink);
+    --bg-secondary: var(--ink-deep);
+    --text: var(--paper);
+    --text-secondary: var(--steel);
 
     --paper: #ffe8b8;
     --steel: #8a8578;
@@ -123,6 +141,12 @@
     --panel: #061206;
     --panel-soft: #0a1a0a;
 
+    /* bridge to base tokens used across dashboard/chart/cards CSS */
+    --bg: var(--ink);
+    --bg-secondary: var(--ink-deep);
+    --text: var(--paper);
+    --text-secondary: var(--steel);
+
     --paper: #d6ffe0;
     --steel: #4f8f5f;
     --steel-rgb: 79, 143, 95;
@@ -145,6 +169,12 @@
     --ink-deep: #05000d;
     --panel: #170b2e;
     --panel-soft: #1f0f3d;
+
+    /* bridge to base tokens used across dashboard/chart/cards CSS */
+    --bg: var(--ink);
+    --bg-secondary: var(--ink-deep);
+    --text: var(--paper);
+    --text-secondary: var(--steel);
 
     --paper: #f5e8ff;
     --steel: #9d7fc2;
@@ -169,6 +199,12 @@
     --panel: #0d1830;
     --panel-soft: #122140;
 
+    /* bridge to base tokens used across dashboard/chart/cards CSS */
+    --bg: var(--ink);
+    --bg-secondary: var(--ink-deep);
+    --text: var(--paper);
+    --text-secondary: var(--steel);
+
     --paper: #e7eefc;
     --steel: #7c8db0;
     --steel-rgb: 124, 141, 176;
@@ -191,6 +227,12 @@
     --ink-deep: #0a0c0f;
     --panel: #171b21;
     --panel-soft: #1d222a;
+
+    /* bridge to base tokens used across dashboard/chart/cards CSS */
+    --bg: var(--ink);
+    --bg-secondary: var(--ink-deep);
+    --text: var(--paper);
+    --text-secondary: var(--steel);
 
     --paper: #e8ecf1;
     --steel: #8894a3;
