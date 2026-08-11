@@ -54,78 +54,18 @@
                 </div>
             </header>
 
-            <div class="ticker" aria-hidden="true">
-                <div class="ticker-track">
-                    <span>LIVE FEED</span><span>·</span><span>SIGNAL ENGINE ARMED</span><span>·</span>
-                    <span>TREND · BREAKOUT · PULLBACK · MOMENTUM · RANGE · MEAN REVERSION</span><span>·</span>
-                    <span>RISK CONTROLS ACTIVE</span><span>·</span><span>PAPER + DRY-RUN + LIVE</span><span>·</span>
-                    <span>LIVE FEED</span><span>·</span><span>SIGNAL ENGINE ARMED</span><span>·</span>
-                    <span>TREND · BREAKOUT · PULLBACK · MOMENTUM · RANGE · MEAN REVERSION</span><span>·</span>
-                    <span>RISK CONTROLS ACTIVE</span><span>·</span><span>PAPER + DRY-RUN + LIVE</span><span>·</span>
-                </div>
-            </div>
+            <!--
+                Ticker removed from the Dashboard per the mockup - it added
+                vertical noise above the fold. If you still want it, move
+                this markup to the Market/Signals page instead of deleting
+                it outright; nothing in app.js or the CSS you have depends
+                on .ticker existing, so removing it here is safe. Just double
+                check style.css/themes.css don't reference it before you
+                delete the CSS rule too.
+            -->
 
             <main class="dashboard">
                 <div class="page active" id="page-dashboard">
-                    <!--
-                        Market/strategy switcher. This used to live in the
-                        pre-redesign sidebar; the "upgrade-dashboard" visual
-                        pass (see archive/legacy-patches/upgrade-dashboard/)
-                        replaced that sidebar's markup but never re-added
-                        equivalents for #pairSelect/#strategySelect, which
-                        core/app.js references unconditionally at module
-                        load. That gap meant the app threw a TypeError on
-                        the very first script line touching them and never
-                        finished booting in an actual browser - caught here
-                        via the new app.js jsdom test suite, not by the
-                        build (bundling doesn't execute the code). See
-                        README "Known gaps" for the fix history.
-                    -->
-                    <section class="backtest-controls" aria-label="Market and strategy selection" style="margin-top: 0; margin-bottom: var(--sp-4);">
-                        <label>
-                            <span>Pair</span>
-                            <select id="pairSelect">
-                                <optgroup label="Crypto (Binance)">
-                                <option value="btcusdt" data-asset-class="crypto" data-api-symbol="BTC/USDT" selected>BTC/USDT</option>
-                                <option value="ethusdt" data-asset-class="crypto" data-api-symbol="ETH/USDT">ETH/USDT</option>
-                                <option value="bnbusdt" data-asset-class="crypto" data-api-symbol="BNB/USDT">BNB/USDT</option>
-                                <option value="solusdt" data-asset-class="crypto" data-api-symbol="SOL/USDT">SOL/USDT</option>
-                                <option value="xrpusdt" data-asset-class="crypto" data-api-symbol="XRP/USDT">XRP/USDT</option>
-                                <option value="adausdt" data-asset-class="crypto" data-api-symbol="ADA/USDT">ADA/USDT</option>
-                                <option value="dogeusdt" data-asset-class="crypto" data-api-symbol="DOGE/USDT">DOGE/USDT</option>
-                                </optgroup>
-                                <optgroup label="Forex (Twelve Data)">
-                                <option value="eurusd" data-asset-class="forex" data-api-symbol="EUR/USD">EUR/USD</option>
-                                <option value="gbpusd" data-asset-class="forex" data-api-symbol="GBP/USD">GBP/USD</option>
-                                <option value="usdjpy" data-asset-class="forex" data-api-symbol="USD/JPY">USD/JPY</option>
-                                <option value="audusd" data-asset-class="forex" data-api-symbol="AUD/USD">AUD/USD</option>
-                                <option value="usdcad" data-asset-class="forex" data-api-symbol="USD/CAD">USD/CAD</option>
-                                <option value="usdchf" data-asset-class="forex" data-api-symbol="USD/CHF">USD/CHF</option>
-                                <option value="nzdusd" data-asset-class="forex" data-api-symbol="NZD/USD">NZD/USD</option>
-                                </optgroup>
-                            </select>
-                        </label>
-                        <label>
-                            <span>Strategy</span>
-                            <select id="strategySelect">
-                                <option value="balanced" selected>Balanced</option>
-                                <option value="trend">Trend Follow</option>
-                                <option value="meanReversion">Mean Reversion</option>
-                                <option value="breakout">Breakout</option>
-                                <option value="scalping">Scalping</option>
-                                <option value="pullback">Pullback (Fib)</option>
-                                <option value="momentum">Momentum</option>
-                                <option value="range">Range Trading</option>
-                                <option value="ema165SarRoc">EMA165 SAR ROC21</option>
-                                <option value="trendFollowing2">Trend Following 2 (EMA 50/200)</option>
-                                <option value="breakout2">Breakout 2 (Volume Confirmed)</option>
-                                <option value="meanReversion2">Mean Reversion 2 (RSI Range)</option>
-                                <option value="emaPullbackAdx">EMA Pullback (ADX Filter)</option>
-                                <option value="aiConfidence">AI Confidence Pipeline</option>
-                            </select>
-                        </label>
-                    </section>
-
                     <!-- KPI Cards -->
                     <section class="kpi-grid" aria-label="Key metrics">
                         <article class="kpi-card kpi-card--blue">
@@ -150,9 +90,60 @@
                         </article>
                     </section>
 
+                    <!--
+                        Market/strategy switcher. #pairSelect and
+                        #strategySelect are read unconditionally by
+                        core/app.js at module load (document.querySelector
+                        with no null-check, plus an unguarded
+                        addEventListener on the result) - removing these
+                        IDs from the DOM crashes the app on boot with a
+                        TypeError, per the app.js jsdom test suite. Moved
+                        here from the old .backtest-controls section above
+                        the KPI cards; IDs and option lists are unchanged,
+                        only the location and visual styling moved.
+                    -->
+                    <section class="dashboard-main-grid">
                     <!-- Main Chart -->
                     <div class="chart-container">
                         <div class="chart-toolbar">
+                            <div class="chart-toolbar-group chart-toolbar-selects">
+                                <select id="pairSelect" class="toolbar-select" aria-label="Trading pair">
+                                    <optgroup label="Crypto (Binance)">
+                                    <option value="btcusdt" data-asset-class="crypto" data-api-symbol="BTC/USDT" selected>BTC/USDT</option>
+                                    <option value="ethusdt" data-asset-class="crypto" data-api-symbol="ETH/USDT">ETH/USDT</option>
+                                    <option value="bnbusdt" data-asset-class="crypto" data-api-symbol="BNB/USDT">BNB/USDT</option>
+                                    <option value="solusdt" data-asset-class="crypto" data-api-symbol="SOL/USDT">SOL/USDT</option>
+                                    <option value="xrpusdt" data-asset-class="crypto" data-api-symbol="XRP/USDT">XRP/USDT</option>
+                                    <option value="adausdt" data-asset-class="crypto" data-api-symbol="ADA/USDT">ADA/USDT</option>
+                                    <option value="dogeusdt" data-asset-class="crypto" data-api-symbol="DOGE/USDT">DOGE/USDT</option>
+                                    </optgroup>
+                                    <optgroup label="Forex (Twelve Data)">
+                                    <option value="eurusd" data-asset-class="forex" data-api-symbol="EUR/USD">EUR/USD</option>
+                                    <option value="gbpusd" data-asset-class="forex" data-api-symbol="GBP/USD">GBP/USD</option>
+                                    <option value="usdjpy" data-asset-class="forex" data-api-symbol="USD/JPY">USD/JPY</option>
+                                    <option value="audusd" data-asset-class="forex" data-api-symbol="AUD/USD">AUD/USD</option>
+                                    <option value="usdcad" data-asset-class="forex" data-api-symbol="USD/CAD">USD/CAD</option>
+                                    <option value="usdchf" data-asset-class="forex" data-api-symbol="USD/CHF">USD/CHF</option>
+                                    <option value="nzdusd" data-asset-class="forex" data-api-symbol="NZD/USD">NZD/USD</option>
+                                    </optgroup>
+                                </select>
+                                <select id="strategySelect" class="toolbar-select" aria-label="Strategy">
+                                    <option value="balanced" selected>Balanced</option>
+                                    <option value="trend">Trend Follow</option>
+                                    <option value="meanReversion">Mean Reversion</option>
+                                    <option value="breakout">Breakout</option>
+                                    <option value="scalping">Scalping</option>
+                                    <option value="pullback">Pullback (Fib)</option>
+                                    <option value="momentum">Momentum</option>
+                                    <option value="range">Range Trading</option>
+                                    <option value="ema165SarRoc">EMA165 SAR ROC21</option>
+                                    <option value="trendFollowing2">Trend Following 2 (EMA 50/200)</option>
+                                    <option value="breakout2">Breakout 2 (Volume Confirmed)</option>
+                                    <option value="meanReversion2">Mean Reversion 2 (RSI Range)</option>
+                                    <option value="emaPullbackAdx">EMA Pullback (ADX Filter)</option>
+                                    <option value="aiConfidence">AI Confidence Pipeline</option>
+                                </select>
+                            </div>
                             <div class="chart-toolbar-group">
                                 <button type="button" class="icon-btn" title="Chart type" aria-label="Chart type">📈</button>
                                 <button type="button" class="icon-btn" title="Indicators" aria-label="Indicators">📊</button>
@@ -172,36 +163,47 @@
                             <button type="button" class="timeframe-btn" data-tf="4h">4H</button>
                             <button type="button" class="timeframe-btn" data-tf="1d">1D</button>
                         </div>
-                    </div>
+                    </div><!-- /.chart-container -->
 
-                    <!-- Bottom Cards -->
-                    <div class="bottom-grid">
-                        <!-- Market Overview -->
-                        <div class="bottom-card">
-                            <div class="bottom-card-header">
-                                <h2 class="bottom-card-title">Market Overview</h2>
-                                <a href="#" class="view-all-link" onclick="return false;">View All</a>
-                            </div>
-                            <div class="bottom-card-body">
-                                <div class="data-strip" id="section-market">
-                                    <div class="data-cell"><span>RSI</span><strong id="rsi">--</strong></div>
-                                    <div class="data-cell"><span>ADX</span><strong id="adx">--</strong></div>
-                                    <div class="data-cell"><span>MACD Hist</span><strong id="macd">--</strong></div>
-                                    <div class="data-cell"><span>Pattern</span><strong id="pattern">none</strong></div>
-                                    <div class="data-cell"><span>Strategy</span><strong id="strategyName">Balanced</strong></div>
-                                    <div class="data-cell"><span>Quality</span><strong id="quality">--</strong></div>
-                                    <div class="data-cell"><span>Volatility</span><strong id="volatility">--</strong></div>
-                                    <div class="data-cell"><span>Volume</span><strong id="volumeRatio">--</strong></div>
-                                    <div class="data-cell"><span>Daily Trend</span><strong id="htfTrend">--</strong></div>
-                                    <div class="data-cell"><span>Entry</span><strong id="entryPrice">--</strong></div>
-                                    <div class="data-cell"><span>Stop</span><strong id="stopLoss">--</strong></div>
-                                    <div class="data-cell"><span>TP1</span><strong id="takeProfit1">--</strong></div>
-                                    <div class="data-cell"><span>TP2</span><strong id="takeProfit">--</strong></div>
-                                    <div class="data-cell"><span>R:R</span><strong id="riskReward">--</strong></div>
-                                </div>
-                            </div>
+                    <!--
+                        Compact price list, styled to match the mockup.
+                        This is new markup with no backing IDs yet - wire it
+                        up to whatever ticker/quote feed you use for the
+                        symbol list (it doesn't have to be the same feed as
+                        the chart's candles). Static placeholder values
+                        below so it renders correctly before that's wired.
+                    -->
+                    <div class="bottom-card market-price-card">
+                        <div class="bottom-card-header">
+                            <h2 class="bottom-card-title">Market Overview</h2>
+                            <a href="#" class="view-all-link" onclick="return false;">View All</a>
                         </div>
+                        <div class="bottom-card-body">
+                            <div class="price-row"><span>BTC/USDT</span><strong>67,046.27</strong><em class="price-change up">+0.31%</em></div>
+                            <div class="price-row"><span>ETH/USDT</span><strong>3,542.18</strong><em class="price-change up">+1.02%</em></div>
+                            <div class="price-row"><span>XAU/USD</span><strong>2,341.63</strong><em class="price-change down">-0.15%</em></div>
+                            <div class="price-row"><span>EUR/USD</span><strong>1.0857</strong><em class="price-change up">+0.12%</em></div>
+                            <div class="price-row"><span>GBP/USD</span><strong>1.2721</strong><em class="price-change up">+0.09%</em></div>
+                        </div>
+                    </div>
+                    </section><!-- /.dashboard-main-grid -->
 
+                    <!--
+                        Bottom row, now 3 columns (was 4 with Market
+                        Overview inline). The old 14-cell indicator card
+                        (RSI/ADX/entry/stop/TP1/TP2/etc.) still has every
+                        ID app.js writes to unconditionally on every signal
+                        update (elements.rsi.textContent = ..., etc. - see
+                        app.js lines 366-370+). It's relabeled "Strategy
+                        Indicators" and kept as its own full-width section
+                        below the 3-col row rather than deleted, since
+                        removing any of its 14 IDs reproduces the same
+                        boot-crash class of bug as #pairSelect above (these
+                        ones would throw on the next signal update instead
+                        of at boot, but same root cause: unguarded
+                        elements.x.textContent write).
+                    -->
+                    <div class="bottom-grid bottom-grid--three">
                         <!-- Signals -->
                         <div class="bottom-card">
                             <div class="bottom-card-header">
@@ -263,6 +265,33 @@
                             </div>
                             <div class="bottom-card-body">
                                 <p class="subtle">AI-powered insights and analysis will appear here.</p>
+                            </div>
+                        </div>
+                    </div><!-- /.bottom-grid -->
+
+                    <!-- Strategy Indicators (formerly "Market Overview" -
+                         moved here, relabeled, IDs unchanged) -->
+                    <div class="bottom-card">
+                        <div class="bottom-card-header">
+                            <h2 class="bottom-card-title">Strategy Indicators</h2>
+                            <a href="#" class="view-all-link" onclick="return false;">View All</a>
+                        </div>
+                        <div class="bottom-card-body">
+                            <div class="data-strip" id="section-market">
+                                <div class="data-cell"><span>RSI</span><strong id="rsi">--</strong></div>
+                                <div class="data-cell"><span>ADX</span><strong id="adx">--</strong></div>
+                                <div class="data-cell"><span>MACD Hist</span><strong id="macd">--</strong></div>
+                                <div class="data-cell"><span>Pattern</span><strong id="pattern">none</strong></div>
+                                <div class="data-cell"><span>Strategy</span><strong id="strategyName">Balanced</strong></div>
+                                <div class="data-cell"><span>Quality</span><strong id="quality">--</strong></div>
+                                <div class="data-cell"><span>Volatility</span><strong id="volatility">--</strong></div>
+                                <div class="data-cell"><span>Volume</span><strong id="volumeRatio">--</strong></div>
+                                <div class="data-cell"><span>Daily Trend</span><strong id="htfTrend">--</strong></div>
+                                <div class="data-cell"><span>Entry</span><strong id="entryPrice">--</strong></div>
+                                <div class="data-cell"><span>Stop</span><strong id="stopLoss">--</strong></div>
+                                <div class="data-cell"><span>TP1</span><strong id="takeProfit1">--</strong></div>
+                                <div class="data-cell"><span>TP2</span><strong id="takeProfit">--</strong></div>
+                                <div class="data-cell"><span>R:R</span><strong id="riskReward">--</strong></div>
                             </div>
                         </div>
                     </div>

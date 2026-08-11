@@ -140,6 +140,10 @@ h1 {
     position: relative;
 }
 
+.icon-btn--has-badge {
+    padding-right: 0;
+}
+
 .notif-dot {
     position: absolute;
     top: 8px;
@@ -282,6 +286,95 @@ h1 {
 }
 
 /* ==========================================================================
+   Main analytics row: chart + compact market price card side by side
+   ========================================================================== */
+
+.dashboard-main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(280px, 0.8fr);
+    gap: var(--sp-4);
+    align-items: start;
+}
+
+@media (max-width: 1023px) {
+    .dashboard-main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Selects moved from the old .backtest-controls section into the chart
+   toolbar - same #pairSelect/#strategySelect elements, new styling only.
+   See the HTML comment above .dashboard-main-grid for why these can't be
+   removed, only relocated. */
+.chart-toolbar-selects {
+    display: flex;
+    gap: var(--sp-2);
+}
+
+.toolbar-select {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 var(--sp-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-soft);
+    background: var(--panel);
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: var(--text-small);
+    font-weight: 600;
+}
+
+.toolbar-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.12);
+}
+
+/* Compact price list card (new "Market Overview") */
+.market-price-card .bottom-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    padding: 0 var(--sp-4) var(--sp-4);
+}
+
+.price-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-2);
+    padding: var(--sp-2) 0;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-display);
+    font-size: var(--text-small);
+}
+
+.price-row:last-child {
+    border-bottom: none;
+}
+
+.price-row span {
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.price-row strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.price-change {
+    font-style: normal;
+    font-weight: 700;
+    font-size: var(--text-caption);
+}
+
+.price-change.up { color: var(--success); }
+.price-change.down { color: var(--danger); }
+
+/* ==========================================================================
    Chart (Hero)
    ========================================================================== */
 
@@ -361,6 +454,24 @@ canvas {
     gap: var(--sp-4);
 }
 
+/* 3-column variant for the Signals/Trades/AI row, now that Market
+   Overview moved up beside the chart. */
+.bottom-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1023px) {
+    .bottom-grid--three {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 767px) {
+    .bottom-grid--three {
+        grid-template-columns: 1fr;
+    }
+}
+
 .bottom-card {
     background: var(--panel);
     border: 1px solid var(--line);
@@ -382,18 +493,18 @@ canvas {
     padding: var(--sp-4) var(--sp-4) var(--sp-3);
 }
 
+.bottom-card-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+}
+
 .bottom-card-title {
     margin: 0;
     font-family: var(--font-display);
     font-size: var(--text-card);
     font-weight: 600;
     color: var(--text);
-}
-
-.bottom-card-header-right {
-    display: flex;
-    align-items: center;
-    gap: var(--sp-2);
 }
 
 .view-all-link {
