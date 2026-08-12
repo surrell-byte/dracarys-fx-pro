@@ -1,20 +1,17 @@
 import demo from "@demo/demoAccount.js";
 
-const page = document.querySelector("#page-weekly-reports");
+const page = document.querySelector("#page-daily-reports");
 
-const API_ROUTE = "/api/report-history?route=reports/weekly&limit=52";
+const API_ROUTE = "/api/report-history?route=reports/daily&limit=30";
 
 function formatDate(value) {
     const date = new Date(value);
     return Number.isNaN(date.valueOf()) ? "—" : date.toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-function startOfWeek(timestamp) {
+function startOfDay(timestamp) {
     const d = new Date(Number(timestamp));
-    const day = d.getDay();
-    const offset = day === 0 ? -6 : 1 - day;
     d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + offset);
     return d.getTime();
 }
 
@@ -26,24 +23,24 @@ function computeProfitFactor(trades) {
     return 0;
 }
 
-function buildWeeklyFallback() {
+function buildDailyFallback() {
     const closedTrades = demo.get().closedTrades || [];
-    const weeks = new Map();
+    const days = new Map();
 
     for (const trade of closedTrades) {
         if (!trade.closedAt) continue;
-        const weekStart = startOfWeek(trade.closedAt);
-        const bucket = weeks.get(weekStart) ?? { weekStart, label: formatDate(weekStart), totalTrades: 0, wins: 0, losses: 0, totalPnlPct: 0, trades: [] };
+        const dayStart = startOfDay(trade.closedAt);
+        const bucket = days.get(dayStart) ?? { dayStart, label: formatDate(dayStart), totalTrades: 0, wins: 0, losses: 0, totalPnlPct: 0, trades: [] };
         bucket.totalTrades += 1;
         bucket.wins += (trade.pnl ?? 0) >= 0 ? 1 : 0;
         bucket.losses += (trade.pnl ?? 0) < 0 ? 1 : 0;
         bucket.totalPnlPct += Number.isFinite(trade.pnl) ? trade.pnl : 0;
         bucket.trades.push(trade);
-        weeks.set(weekStart, bucket);
+        days.set(dayStart, bucket);
     }
 
-    return Array.from(weeks.values())
-        .sort((a, b) => b.weekStart - a.weekStart)
+    return Array.from(days.values())
+        .sort((a, b) => b.dayStart - a.dayStart)
         .map((bucket) => ({
             dateLabel: bucket.label,
             period_start: bucket.label,
@@ -69,7 +66,7 @@ async function fetchReports() {
     const response = await fetch(API_ROUTE, { cache: "no-store" });
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || "Unable to load weekly reports.");
+        throw new Error(data.error || "Unable to load daily reports.");
     }
     const payload = await response.json();
     return Array.isArray(payload.reports) ? payload.reports : [];
@@ -88,7 +85,7 @@ function renderSummary(summaryEl, reports, isFallback = false) {
         ["Reports", totalReports],
         ["Total trades", totalTrades],
         ["Avg win rate", `${avgWinRate.toFixed(1)}%`],
-        ["Sum P/L", `${netPnl >= 0 ? "+" : ""}${netPnl.toFixed(2)}%`]
+        ["Cumulative P/L", `${netPnl >= 0 ? "+" : ""}${netPnl.toFixed(2)}%`]
     ];
 
     let html = metrics.map(([label, value]) => `<div class="metric"><div class="label">${label}</div><div class="value">${value}</div></div>`).join("");
@@ -101,7 +98,7 @@ function renderSummary(summaryEl, reports, isFallback = false) {
 function renderTable(bodyEl, reports) {
     if (!bodyEl) return;
     if (!reports.length) {
-        bodyEl.innerHTML = `<tr><td colspan="7" class="empty-history">No weekly reports available yet.</td></tr>`;
+        bodyEl.innerHTML = `<tr><td colspan="6" class="empty-history">No daily reports available yet.</td></tr>`;
         return;
     }
 
@@ -124,25 +121,25 @@ function renderTable(bodyEl, reports) {
 
 async function render() {
     if (!page) return;
-    const summaryEl = page.querySelector("#weeklyReportsSummary");
-    const bodyEl = page.querySelector("#weeklyReportsBody");
+    const summaryEl = page.querySelector("#dailyReportsSummary");
+    const bodyEl = page.querySelector("#dailyReportsBody");
     if (!summaryEl || !bodyEl) return;
 
     summaryEl.innerHTML = "Loading reports...";
-    bodyEl.innerHTML = `<tr><td colspan="7" class="empty-history">Loading weekly reports…</td></tr>`;
+    bodyEl.innerHTML = `<tr><td colspan="6" class="empty-history">Loading daily reports…</td></tr>`;
 
     try {
         const reports = await fetchReports();
         renderSummary(summaryEl, reports);
         renderTable(bodyEl, reports);
     } catch (error) {
-        const fallbackReports = buildWeeklyFallback();
+        const fallbackReports = buildDailyFallback();
         if (fallbackReports.length) {
             renderSummary(summaryEl, fallbackReports, true);
             renderTable(bodyEl, fallbackReports);
         } else {
             summaryEl.innerHTML = "";
-            bodyEl.innerHTML = `<tr><td colspan="7" class="empty-history">${escapeHtml(error.message)}</td></tr>`;
+            bodyEl.innerHTML = `<tr><td colspan="6" class="empty-history">${escapeHtml(error.message)}</td></tr>`;
         }
     }
 }
@@ -150,6 +147,6 @@ async function render() {
 if (page) {
     render();
     document.querySelector("#sideMenu")?.addEventListener("click", (e) => {
-        if (e.target.closest('[data-target="page-weekly-reports"]')) render();
+        if (e.target.closest('[data-target="page-daily-reports"]')) render();
     });
 }

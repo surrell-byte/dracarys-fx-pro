@@ -21,6 +21,7 @@
                 <button type="button" data-target="page-execution"><span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span><span class="menu-label">Demo Account</span></button>
                 <button type="button" data-target="page-journal"><span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a2 2 0 0 1-2-2v-1a2 2 0 0 1 2-2h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="8" cy="14" r="1"/><circle cx="12" cy="14" r="1"/><circle cx="16" cy="14" r="1"/></svg></span><span class="menu-label">AI Journal</span></button>
                 <button type="button" data-target="page-weekly-reports"><span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span class="menu-label">Weekly Reports</span></button>
+                <button type="button" data-target="page-daily-reports"><span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18v14H3z"/><path d="M3 11h18"/><path d="M9 5v14"/></svg></span><span class="menu-label">Daily Reports</span></button>
                 <button type="button" data-target="page-history"><span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span><span class="menu-label">Trade History</span></button>
                 <button type="button" data-target="page-live-reports"><span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg></span><span class="menu-label">Live Reports</span></button>
                 <button type="button" data-target="page-settings"><span class="menu-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V2a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="menu-label">Settings</span></button>
@@ -758,18 +759,40 @@
                     <section class="lab-section">
                         <div class="section-head">
                             <div>
-                                <p class="label">Demo Account</p>
+                                <p class="label">Scheduler Reports</p>
                                 <h2>Weekly Reports</h2>
                             </div>
                         </div>
-                        <p class="subtle">Closed demo trades bucketed by calendar week, most recent first.</p>
+                        <p class="subtle">Scheduler-generated weekly snapshots from closed trade history, most recent first.</p>
                         <div id="weeklyReportsSummary" class="stat-strip"></div>
                         <div class="lab-table-wrap lab-table-wrap--spaced">
                             <table class="lab-table">
                                 <thead>
-                                    <tr><th>Week</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>Net P/L</th></tr>
+                                    <tr><th>Week</th><th>Trades</th><th>Win Rate</th><th>P/L</th><th>Profit Factor</th><th>Generated</th></tr>
                                 </thead>
                                 <tbody id="weeklyReportsBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Daily Reports Page -->
+                <div class="page" id="page-daily-reports">
+                    <section class="lab-section">
+                        <div class="section-head">
+                            <div>
+                                <p class="label">Scheduler Reports</p>
+                                <h2>Daily Reports</h2>
+                            </div>
+                        </div>
+                        <p class="subtle">Daily snapshots of scheduler-generated performance, most recent first.</p>
+                        <div id="dailyReportsSummary" class="stat-strip"></div>
+                        <div class="lab-table-wrap lab-table-wrap--spaced">
+                            <table class="lab-table">
+                                <thead>
+                                    <tr><th>Date</th><th>Trades</th><th>Win Rate</th><th>P/L</th><th>Profit Factor</th><th>Generated</th></tr>
+                                </thead>
+                                <tbody id="dailyReportsBody"></tbody>
                             </table>
                         </div>
                     </section>
@@ -866,6 +889,7 @@
     <script type="module" src="src/js/core/presentationMode.js"></script>
     <script type="module" src="src/js/components/liveReportsDashboard.js"></script>
     <script type="module" src="src/js/components/weeklyReportsPage.js"></script>
+    <script type="module" src="src/js/components/dailyReportsPage.js"></script>
     <script type="module" src="src/js/components/settingsPage.js"></script>
     <script type="module" src="src/js/components/themeGalleryPage.js"></script>
 </body>
