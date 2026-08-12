@@ -52,7 +52,7 @@ function buildDailyFallback() {
         }));
 }
 
-function escapeHtml(value) {
+function escapeHtmlDaily(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
         "&": "&amp;",
         "<": "&lt;",
@@ -139,7 +139,7 @@ async function render() {
             renderTable(bodyEl, fallbackReports);
         } else {
             summaryEl.innerHTML = "";
-            bodyEl.innerHTML = `<tr><td colspan="6" class="empty-history">${escapeHtml(error.message)}</td></tr>`;
+            bodyEl.innerHTML = `<tr><td colspan="6" class="empty-history">${escapeHtmlDaily(error.message)}</td></tr>`;
         }
     }
 }

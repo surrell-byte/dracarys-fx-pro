@@ -1,0 +1,643 @@
+/* ==========================================================================
+   DRACARYS FX — VISUAL REFINEMENT
+   Goal:
+   - Flatter hierarchy
+   - Fewer nested cards
+   - Less "shapes inside shapes"
+   - Softer borders
+   - Less aggressive shadows
+   - More breathing room
+   - Closer to the Playful Blue mockup
+   ========================================================================== */
+
+/* ==========================================================================
+   1. GLOBAL DESIGN TOKENS
+   ========================================================================== */
+
+:root {
+    --shadow: 0 2px 10px rgba(15, 23, 42, 0.035);
+    --shadow-hover: 0 6px 18px rgba(15, 23, 42, 0.065);
+    --shadow-sm: 0 1px 5px rgba(15, 23, 42, 0.025);
+    --shadow-md: 0 3px 12px rgba(15, 23, 42, 0.045);
+    --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.08);
+
+    --radius-soft: 10px;
+    --radius-card: 16px;
+    --radius-chart: 16px;
+    --radius-sidebar: 24px;
+
+    --line: #E4EAF2;
+    --line-strong: #D5DDE8;
+
+    --bg: #F7F9FC;
+    --bg-secondary: #F3F6FA;
+
+    --text-hero: 26px;
+    --text-heading: 23px;
+    --text-card: 17px;
+
+    --transition-fast: 160ms ease;
+}
+
+/* ==========================================================================
+   2. PAGE / MAIN CANVAS
+   ========================================================================== */
+
+body {
+    background: var(--bg);
+}
+
+.main {
+    background: var(--bg);
+}
+
+.dashboard {
+    width: min(1320px, calc(100% - 48px));
+    padding: 24px 0 32px;
+    gap: 20px;
+}
+
+/* ==========================================================================
+   3. HEADER
+   ========================================================================== */
+
+.topbar {
+    height: 84px;
+    padding: 0 28px;
+    background: rgba(255, 255, 255, 0.96);
+    border-bottom: 1px solid var(--line);
+    box-shadow: none;
+}
+
+.topbar-left {
+    gap: 3px;
+}
+
+h1 {
+    font-size: 26px;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+}
+
+.eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.09em;
+}
+
+.topbar-center {
+    max-width: 460px;
+}
+
+.search-bar {
+    height: 42px;
+    background: #F8FAFD;
+    border-color: #E0E7F0;
+    box-shadow: none;
+}
+
+.search-bar:focus {
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.10);
+}
+
+/* ==========================================================================
+   4. HEADER ICONS
+   ========================================================================== */
+
+.icon-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: #FFFFFF;
+    box-shadow: none;
+}
+
+.icon-btn:hover {
+    transform: none;
+    box-shadow: none;
+    background: #F7F9FC;
+}
+
+/* ==========================================================================
+   5. KPI CARDS
+   ========================================================================== */
+
+.kpi-grid {
+    gap: 16px;
+}
+
+.kpi-card {
+    min-height: 118px;
+    padding: 18px;
+    border-radius: 16px;
+    border: 0;
+    box-shadow: none;
+    overflow: hidden;
+}
+
+.kpi-card:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.kpi-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+}
+
+.kpi-value {
+    margin-top: 7px;
+    font-size: 26px;
+}
+
+.kpi-sub {
+    margin-top: 4px;
+}
+
+.kpi-sparkline {
+    margin-top: 8px;
+}
+
+/* ==========================================================================
+   6. DASHBOARD MAJOR GRID
+   ========================================================================== */
+
+.dashboard-main-grid {
+    grid-template-columns: minmax(0, 1.95fr) minmax(290px, 0.75fr);
+    gap: 16px;
+}
+
+/* ==========================================================================
+   7. CHART — MAKE IT ONE OBJECT
+   ========================================================================== */
+
+.chart-container {
+    background: #FFFFFF;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.chart-container:hover {
+    box-shadow: var(--shadow);
+}
+
+.chart-section {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+}
+
+.chart-section:hover {
+    box-shadow: none;
+}
+
+.chart-toolbar {
+    min-height: 58px;
+    padding: 10px 16px;
+    background: #FFFFFF;
+    border-bottom: 1px solid var(--line);
+}
+
+.chart-toolbar-group {
+    gap: 8px;
+}
+
+.chart-toolbar-selects {
+    gap: 8px;
+}
+
+.toolbar-select {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 9px;
+    background: #FFFFFF;
+    border-color: #E0E7F0;
+    box-shadow: none;
+}
+
+.toolbar-select:focus {
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.10);
+}
+
+.chart-container canvas,
+.chart-section canvas {
+    background: #FFFFFF;
+}
+
+.chart-timeframes {
+    min-height: 54px;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 16px;
+    background: #FFFFFF;
+    border-top: 1px solid var(--line);
+}
+
+.timeframe-btn {
+    min-width: 52px;
+    min-height: 34px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+}
+
+.timeframe-btn:hover {
+    border-color: transparent;
+    background: #F3F6FA;
+}
+
+.timeframe-btn.active {
+    background: var(--primary);
+    color: #FFFFFF;
+    border-color: var(--primary);
+}
+
+/* ==========================================================================
+   8. MARKET OVERVIEW
+   ========================================================================== */
+
+.market-price-card {
+    background: #FFFFFF;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+}
+
+.market-price-card:hover {
+    transform: none;
+    box-shadow: var(--shadow);
+}
+
+.market-price-card .bottom-card-header {
+    padding: 18px 18px 12px;
+}
+
+.market-price-card .bottom-card-body {
+    padding: 0 18px 16px;
+}
+
+.price-row {
+    min-height: 42px;
+    padding: 8px 0;
+    border-bottom: 1px solid #E8EDF3;
+}
+
+/* ==========================================================================
+   9. BOTTOM CARDS
+   ========================================================================== */
+
+.bottom-grid {
+    gap: 16px;
+}
+
+.bottom-grid--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bottom-card {
+    background: #FFFFFF;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+}
+
+.bottom-card:hover {
+    transform: none;
+    box-shadow: var(--shadow);
+}
+
+.bottom-card-header {
+    min-height: 58px;
+    padding: 16px 18px 12px;
+}
+
+.bottom-card-body {
+    padding: 0 18px 18px;
+}
+
+.bottom-card-title {
+    font-size: 17px;
+    letter-spacing: -0.01em;
+}
+
+/* ==========================================================================
+   10. REMOVE "CARD INSIDE CARD" EFFECTS
+   ========================================================================== */
+
+.bottom-card .panel,
+.bottom-card .signal-panel,
+.bottom-card .data-strip {
+    box-shadow: none;
+}
+
+.bottom-card .signal-panel {
+    min-height: 0;
+    padding: 4px 0 8px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.bottom-card .signal-panel::before {
+    display: none;
+}
+
+.bottom-card .signal-panel:hover {
+    box-shadow: none;
+}
+
+.bottom-card .data-strip {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+/* ==========================================================================
+   11. GENERIC PANELS
+   ========================================================================== */
+
+.dashboard .panel {
+    border-radius: 16px;
+    border-color: var(--line);
+    box-shadow: var(--shadow);
+}
+
+.dashboard .panel:hover {
+    transform: none;
+    box-shadow: var(--shadow);
+}
+
+/* ==========================================================================
+   12. BUTTONS
+   ========================================================================== */
+
+button {
+    border-radius: 9px;
+    transition:
+        background-color var(--transition-fast),
+        border-color var(--transition-fast),
+        color var(--transition-fast),
+        transform var(--transition-fast);
+}
+
+button:hover:not(:disabled) {
+    transform: none;
+    box-shadow: none;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+.dashboard button.secondary {
+    box-shadow: none;
+}
+
+/* ==========================================================================
+   13. STATUS / BADGES
+   ========================================================================== */
+
+.status-pill {
+    border-radius: 999px;
+    box-shadow: none;
+}
+
+.badge {
+    border-radius: 999px;
+    box-shadow: none;
+}
+
+/* ==========================================================================
+   14. TABLE / DATA ROWS
+   ========================================================================== */
+
+.price-row:last-child {
+    border-bottom: 0;
+}
+
+.data-cell {
+    background: transparent;
+}
+
+/* ==========================================================================
+   15. SIDEBAR
+   ========================================================================== */
+
+.sidebar {
+    box-shadow: none;
+    border: 0;
+}
+
+.menu {
+    gap: 3px;
+}
+
+.menu button {
+    border-radius: 10px;
+    transition:
+        background-color var(--transition-fast),
+        color var(--transition-fast);
+}
+
+.menu button:hover:not(:disabled) {
+    transform: none;
+}
+
+.menu-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.10);
+}
+
+.menu button.active {
+    border-radius: 12px;
+}
+
+.profile-card {
+    border-radius: 12px;
+    box-shadow: none;
+}
+
+/* ==========================================================================
+   16. SIDEBAR DESKTOP SPACING
+   ========================================================================== */
+
+@media (min-width: 1280px) {
+    .sidebar {
+        margin: 16px;
+        height: calc(100vh - 32px);
+    }
+}
+
+/* ==========================================================================
+   17. RESPONSIVE — TABLET
+   ========================================================================== */
+
+@media (max-width: 1279px) {
+
+    .dashboard {
+        width: min(100% - 40px, 1180px);
+    }
+
+    .dashboard-main-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-container {
+        width: 100%;
+    }
+
+    .market-price-card {
+        width: 100%;
+    }
+}
+
+/* ==========================================================================
+   18. RESPONSIVE — TABLET PORTRAIT
+   ========================================================================== */
+
+@media (max-width: 1023px) {
+
+    .dashboard {
+        width: min(100% - 32px, 960px);
+        gap: 16px;
+    }
+
+    .topbar {
+        padding: 0 20px;
+    }
+
+    .bottom-grid--three {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ==========================================================================
+   19. RESPONSIVE — MOBILE
+   ========================================================================== */
+
+@media (max-width: 767px) {
+
+    .dashboard {
+        width: calc(100% - 24px);
+        padding: 16px 0 24px;
+        gap: 14px;
+    }
+
+    .topbar {
+        padding: 16px;
+        gap: 12px;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+
+    .kpi-grid {
+        gap: 10px;
+    }
+
+    .kpi-card {
+        min-height: 108px;
+        padding: 15px;
+        border-radius: 14px;
+    }
+
+    .kpi-value {
+        font-size: 23px;
+    }
+
+    .dashboard-main-grid {
+        gap: 12px;
+    }
+
+    .chart-container {
+        border-radius: 14px;
+    }
+
+    .chart-toolbar {
+        min-height: 54px;
+        padding: 8px 12px;
+    }
+
+    .chart-toolbar-selects {
+        max-width: calc(100% - 90px);
+        overflow-x: auto;
+    }
+
+    .toolbar-select {
+        flex: 0 0 auto;
+    }
+
+    .chart-timeframes {
+        overflow-x: auto;
+        padding: 8px 12px;
+    }
+
+    .timeframe-btn {
+        flex: 0 0 auto;
+    }
+
+    canvas {
+        height: 300px;
+    }
+
+    .bottom-grid--three {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .bottom-card {
+        border-radius: 14px;
+    }
+
+    .bottom-card-header {
+        padding: 14px 15px 10px;
+    }
+
+    .bottom-card-body {
+        padding: 0 15px 15px;
+    }
+}
+
+/* ==========================================================================
+   20. MOBILE BOTTOM NAV
+   ========================================================================== */
+
+@media (max-width: 767px) {
+
+    .sidebar {
+        border-radius: 14px 14px 0 0;
+        box-shadow: 0 -2px 12px rgba(15, 23, 42, 0.06);
+    }
+
+    .menu button {
+        border-radius: 0;
+    }
+
+    .menu-icon {
+        border-radius: 50%;
+    }
+}
+
+/* ==========================================================================
+   21. ACCESSIBILITY / REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
