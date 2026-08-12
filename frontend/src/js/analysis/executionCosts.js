@@ -22,6 +22,10 @@ function costsFor(assetClass, costs) {
         return costs;
     }
 
+    if (assetClass == null) {
+        return { spreadPct: 0, slippagePct: 0, feePct: 0 };
+    }
+
     const table = costs || DEFAULT_EXECUTION_COSTS;
     return table[assetClass] || table.crypto;
 }

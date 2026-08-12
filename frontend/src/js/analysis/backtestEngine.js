@@ -2,7 +2,8 @@ import { generateSignal, STRATEGIES } from "@signals/signalEngine.js";
 import { evaluateEdge } from "@analysis/payoutMetrics.js";
 import { DEFAULT_EXPIRY_LENGTHS } from "@analysis/binaryTracker.js";
 import { calculateEMA } from "@indicators/indicators.js";
-import { applyEntryCost, applyExitCost, applyFeeToPnl } from "@analysis/executionCosts.js";
+import { applyExitCost } from "@analysis/executionCosts.js";
+import { createEntryFill, evaluateCandleExit } from "@analysis/executionSimulator.js";
 import { computeStrategyStats } from "@analysis/performanceStats.js";
 
 // Backtests historical candles walk-forward through the SAME generateSignal
@@ -95,6 +96,8 @@ export async function runBacktest(candles, options = {}) {
         // that don't care yet aren't silently changed.
         assetClass = null,
         costs = null,
+        maxHoldCandles = Infinity,
+        ambiguousFillRule = "conservative",
         // Merged into every generateSignal() context alongside higherTrend.
         // Exists so callers (e.g. scripts/analysis/smcAblationTest.js) can
         // pass strategy-scoring options like excludeVoteModules through the
@@ -125,7 +128,16 @@ export async function runBacktest(candles, options = {}) {
     const lastDirection = {};
 
     strategyIds.forEach((id) => {
-        spotPositions[id] = { side: null, entry: null };
+        spotPositions[id] = {
+            side: null,
+            type: null,
+            entryPrice: null,
+            stopLoss: null,
+            takeProfit: null,
+            candlesSinceOpen: 0,
+            confidence: null,
+            regime: null
+        };
         lastDirection[id] = null;
     });
 
@@ -170,62 +182,114 @@ export async function runBacktest(candles, options = {}) {
         // 3. One generateSignal() call per strategy per candle, shared by both models.
         strategyIds.forEach((id) => {
             const signal = generateSignal(windowCandles, id, { higherTrend: getHigherTrend(candleTime), ...extraSignalContext });
-            if (!signal.ready) return;
+            const position = spotPositions[id];
+
+            /*
+             * ============================================================
+             * 1. MANAGE EXISTING POSITION FIRST
+             * ============================================================
+             *
+             * A position must continue to be monitored even when the
+             * strategy produces WAIT / NEUTRAL / not-ready on this candle.
+             */
+            if (position.side) {
+                position.candlesSinceOpen += 1;
+
+                const exit = evaluateCandleExit({
+                    position: {
+                        type: position.type,
+                        entryPrice: position.entryPrice,
+                        stopLoss: position.stopLoss,
+                        takeProfit: position.takeProfit
+                    },
+                    candle: candles[i],
+                    candlesSinceOpen: position.candlesSinceOpen,
+                    maxHoldCandles,
+                    ambiguousFillRule,
+                    assetClass,
+                    costs
+                });
+
+                if (exit) {
+                    spotTrades.push({
+                        strategy: id,
+                        label: STRATEGIES[id]?.label ?? id,
+                        side: position.side,
+                        entry: position.entryPrice,
+                        exit: exit.exitPrice,
+                        pnlPercent: exit.pnlPct,
+                        openedAt: position.openedAt,
+                        closedAt: candleTime,
+                        confidence: position.confidence ?? null,
+                        outcome: exit.outcome,
+                        closeReason: exit.closeReason,
+                        regime: position.regime ?? null
+                    });
+
+                    position.side = null;
+                    position.type = null;
+                    position.entryPrice = null;
+                    position.stopLoss = null;
+                    position.takeProfit = null;
+                    position.candlesSinceOpen = 0;
+                    position.confidence = null;
+                    position.regime = null;
+                    position.openedAt = null;
+                }
+            }
+
+            /*
+             * ============================================================
+             * 2. NO NEW ENTRY WITHOUT A VALID SIGNAL
+             * ============================================================
+             */
+            if (!signal.ready) {
+                return;
+            }
+
             if (signal.type !== "BUY" && signal.type !== "SELL") {
                 lastDirection[id] = null;
                 return;
             }
 
-            // -- spot model: flip on opposite signal --
-            const nextSide = signal.type === "BUY" ? "long" : "short";
-            const position = spotPositions[id];
+            /*
+             * ============================================================
+             * 3. OPEN NEW POSITION ONLY IF FLAT
+             * ============================================================
+             */
+            if (!position.side) {
+                const nextSide = signal.type === "BUY" ? "long" : "short";
+                const rawPrice = signal.price ?? windowCandles.at(-1).close;
 
-            if (position.side && position.side !== nextSide) {
-                // Closing leg: a long exits like a SELL, a short exits like
-                // a BUY-to-cover. Apply the same fill model the scheduler
-                // uses so the % PnL reported here reflects what a real
-                // fill would have looked like, not the raw candle price.
-                const exitType = position.side === "long" ? "BUY" : "SELL";
-                const filledExit = assetClass
-                    ? applyExitCost(signal.price, exitType, assetClass, costs)
-                    : signal.price;
-                const rawPnlPercent = position.side === "long"
-                    ? ((filledExit - position.entry) / position.entry) * 100
-                    : ((position.entry - filledExit) / position.entry) * 100;
-                const pnlPercent = assetClass
-                    ? applyFeeToPnl(rawPnlPercent, assetClass, costs)
-                    : rawPnlPercent;
-                spotTrades.push({
-                    strategy: id,
-                    label: STRATEGIES[id]?.label ?? id,
-                    side: position.side,
-                    entry: position.entry,
-                    exit: filledExit,
-                    pnlPercent,
-                    closedAt: candleTime,
-                    confidence: position.confidence ?? null,
-                    outcome: pnlPercent >= 0 ? "win" : "loss"
-                });
-            }
-            if (position.side !== nextSide) {
-                const entryType = nextSide === "long" ? "BUY" : "SELL";
                 position.side = nextSide;
-                position.entry = assetClass
-                    ? applyEntryCost(signal.price, entryType, assetClass, costs)
-                    : signal.price;
-                // Captured at trade-open time so calibration.js can later
-                // compare predicted confidence to the realised outcome above.
+                position.type = signal.type;
+                position.entryPrice = createEntryFill({
+                    signal: { type: signal.type, price: rawPrice },
+                    assetClass,
+                    costs
+                });
+                position.stopLoss = signal.risk?.stopLoss ?? null;
+                position.takeProfit = signal.risk?.takeProfit ?? null;
+                position.candlesSinceOpen = 0;
                 position.confidence = Number.isFinite(signal.confidence)
                     ? signal.confidence
                     : null;
+                position.regime = signal.regime?.primary ?? null;
+                position.openedAt = candleTime;
             }
 
-            // -- binary model: fresh fixed-expiry bet only on a direction change --
+            /*
+             * ============================================================
+             * 4. BINARY SIGNAL TRACKING
+             * ============================================================
+             */
             if (lastDirection[id] !== signal.type) {
                 lastDirection[id] = signal.type;
-                const binaryEntryPrice = assetClass
-                    ? applyEntryCost(signal.price, signal.type, assetClass, costs)
-                    : signal.price;
+                const binaryEntryPrice = createEntryFill({
+                    signal: { type: signal.type, price: signal.price ?? windowCandles.at(-1).close },
+                    assetClass,
+                    costs
+                });
                 expiryLengths.forEach((expiryLength) => {
                     pendingBinary.push({
                         strategy: id,
@@ -352,6 +416,24 @@ function groupTradesByStrategy(strategyIds, trades) {
     return byStrategy;
 }
 
+function mostCommon(values) {
+    const counts = new Map();
+    let best = null;
+    let bestCount = 0;
+
+    for (const value of values) {
+        if (value == null) continue;
+        const count = (counts.get(value) ?? 0) + 1;
+        counts.set(value, count);
+        if (count > bestCount) {
+            bestCount = count;
+            best = value;
+        }
+    }
+
+    return best ?? "UNKNOWN";
+}
+
 function buildSpotLeaderboard(strategyIds, trades) {
     // Group into per-strategy chronological trade lists (trades were
     // pushed in candle order during the main loop above, so this
@@ -367,6 +449,7 @@ function buildSpotLeaderboard(strategyIds, trades) {
             return {
                 strategy: id,
                 label: STRATEGIES[id]?.label ?? id,
+                regime: mostCommon(strategyTrades.map((trade) => trade.regime)),
                 trades: stats.trades,
                 winRate: stats.winRate != null ? stats.winRate * 100 : 0,
                 totalPnl: stats.totalReturn,

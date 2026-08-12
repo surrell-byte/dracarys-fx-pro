@@ -141,14 +141,19 @@ export async function scanSymbol({ symbol, assetClass }) {
             type: signal.type,
             confidence: signal.confidence ?? null,
             quality: signal.quality ?? null,
-                entryPrice: createEntryFill({
-                    signal: { type: signal.type, price: signal.price ?? latestPrice },
-                    assetClass,
-                    costs: config.executionCosts
-                }),
-            `[${symbol}] opened ${signal.strategy} #${id}: ${signal.type} @ ${signal.price} ` +
-            `(confidence ${signal.confidence}, ${signal.quality})`
-        );
+            entryPrice: createEntryFill({
+                signal: { type: signal.type, price: signal.price ?? latestPrice },
+                assetClass,
+                costs: config.executionCosts
+            }),
+            stopLoss: signal.risk?.stopLoss ?? null,
+            takeProfit: signal.risk?.takeProfit ?? null,
+            rewardMultiple: signal.risk?.rewardMultiple ?? null,
+            regime: signal.regime?.primary ?? null,
+            reason: signal.reason ?? null,
+            expiryLabel: signal.expiry?.label ?? null,
+            expiryMinutes: signal.expiry?.minutes ?? null
+        });
 
         if (meetsNotifyThreshold(signal, config.notifications)) {
             sendDiscordMessage(formatSignalMessage(signal, symbol));

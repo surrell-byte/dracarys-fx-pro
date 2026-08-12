@@ -35,9 +35,9 @@ vi.mock("../scripts/scheduler/portfolioRisk.js", () => ({
     evaluatePortfolioRisk: evaluatePortfolioRiskMock
 }));
 
-const applyEntryCostMock = vi.fn((price) => price);
-vi.mock("@analysis/executionCosts.js", () => ({
-    applyEntryCost: applyEntryCostMock
+const createEntryFillMock = vi.fn((options) => options.signal.price);
+vi.mock("@analysis/executionSimulator.js", () => ({
+    createEntryFill: createEntryFillMock
 }));
 
 const sendDiscordMessageMock = vi.fn();
@@ -83,7 +83,7 @@ beforeEach(() => {
     dbMock.getTodaysClosedSignals.mockReturnValue([]);
     dbMock.insertSignal.mockReturnValue(1);
     evaluatePortfolioRiskMock.mockReturnValue({ allowed: true, reasons: [] });
-    applyEntryCostMock.mockImplementation((price) => price);
+    createEntryFillMock.mockImplementation((options) => options.signal.price);
     shouldOpenMock.mockReturnValue(false);
     generateSignalMock.mockReturnValue({ type: "HOLD" });
 });
@@ -153,7 +153,7 @@ describe("scanSymbol", () => {
             regime: { primary: "trending" },
             reason: "test reason"
         });
-        applyEntryCostMock.mockReturnValue(100.05);
+        createEntryFillMock.mockReturnValue(100.05);
         meetsNotifyThresholdMock.mockReturnValue(true);
 
         await scanSymbol({ symbol: "BTC/USDT", assetClass: "crypto" });

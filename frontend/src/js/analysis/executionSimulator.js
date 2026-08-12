@@ -10,10 +10,6 @@ import {
     applyFeeToPnl
 } from "./executionCosts.js";
 
-function clamp(value, min, max) {
-    return Math.min(Math.max(value, min), max);
-}
-
 function validateFinite(name, value) {
     if (!Number.isFinite(value)) {
         throw new Error(`${name} must be a finite number.`);

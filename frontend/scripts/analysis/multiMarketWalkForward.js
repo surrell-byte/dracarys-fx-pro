@@ -62,6 +62,7 @@ function summariseFoldResults(results, symbol, timeframe) {
                 timeframe,
                 fold: fold.fold,
                 strategy: row.strategy,
+                regime: row.regime ?? "UNKNOWN",
                 trades: row.trades ?? 0,
                 winRate: row.winRate ?? null,
                 totalPnl: row.totalPnl ?? null,
