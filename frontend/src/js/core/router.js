@@ -26,7 +26,8 @@ function pathFor(pageId) {
 }
 
 function pageIdForPath(path) {
-    return ROUTES.get(path) ?? DEFAULT_PAGE;
+    const pathname = path.split("?")[0].split("#")[0].replace(/\/+$/, "") || "/";
+    return ROUTES.get(pathname) ?? DEFAULT_PAGE;
 }
 
 function showPage(pageId) {
@@ -38,8 +39,8 @@ function showPage(pageId) {
     });
     // Scroll to top of the main column on every navigation, since pages
     // no longer live in one continuous scroll.
-    document.querySelector(".main")?.scrollTo({ top: 0, behavior: "instant" });
-    window.scrollTo({ top: 0, behavior: "instant" });
+    document.querySelector(".main")?.scrollTo({ top: 0, behavior: "auto" });
+    window.scrollTo({ top: 0, behavior: "auto" });
 }
 
 function navigate(pageId, { replace = false } = {}) {

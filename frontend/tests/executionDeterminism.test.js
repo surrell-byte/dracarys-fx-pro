@@ -31,8 +31,8 @@ function runExecutionScenario({ position, candles, maxHoldCandles = 100 }) {
     return null;
 }
 
-describe("backtest/paper execution parity", () => {
-    it("produces identical execution outcomes for the same candle sequence", () => {
+describe("execution simulator determinism", () => {
+    it("produces deterministic outcomes for identical candle sequences", () => {
         const position = {
             type: "BUY",
             entryPrice: 100,

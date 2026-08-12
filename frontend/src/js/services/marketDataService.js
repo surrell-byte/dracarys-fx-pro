@@ -138,6 +138,9 @@ export class MarketDataService {
         this.ws.addEventListener("error", () => {
             if (connectionId !== this.connectionId) return;
             this.setStatus("Connection error");
+            if (this.ws) {
+                this.ws.close();
+            }
         });
     }
 

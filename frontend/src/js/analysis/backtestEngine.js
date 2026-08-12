@@ -6,6 +6,41 @@ import { applyExitCost } from "@analysis/executionCosts.js";
 import { createEntryFill, evaluateCandleExit } from "@analysis/executionSimulator.js";
 import { computeStrategyStats } from "@analysis/performanceStats.js";
 
+/*
+ * BACKTEST EXECUTION MODEL
+ *
+ * The spot model is a risk-managed position model.
+ *
+ * BUY:
+ *   flat -> LONG
+ *
+ * SELL:
+ *   flat -> SHORT
+ *
+ * Once a position is open, it remains open until:
+ *
+ *   1. stop-loss
+ *   2. take-profit
+ *   3. maximum holding period
+ *
+ * An opposite signal does NOT automatically reverse the position.
+ *
+ * This deliberately differs from StrategyTester, which is a
+ * signal-reversal model. StrategyTester should therefore not be
+ * described as an exact execution-parity implementation of this
+ * backtest.
+ *
+ * The backtest execution lifecycle is:
+ *
+ *   existing position
+ *       ↓
+ *   check SL / TP / timeout
+ *       ↓
+ *   generate signal
+ *       ↓
+ *   open position only if flat
+ */
+
 // Backtests historical candles walk-forward through the SAME generateSignal
 // pipeline the live app uses - this is deliberately not a reimplementation
 // of the scoring logic, it's a replay of it. Every step only ever sees
@@ -17,8 +52,8 @@ import { computeStrategyStats } from "@analysis/performanceStats.js";
 // transfer to live trading.
 //
 // Two outcome models run side by side per strategy, per candle:
-//   - "spot": a running position that flips on the opposite signal and
-//     realizes % PnL on the flip (mirrors StrategyTester).
+//   - "spot": a risk-managed running position that remains open until
+//     SL / TP / timeout. Opposite signals do not reverse an open trade.
 //   - "binary": a fixed-expiry directional bet, win if price closed on the
 //     predicted side N candles later (mirrors BinaryOutcomeTracker), scored
 //     against the broker payout via the same evaluateEdge() breakeven math.
@@ -103,7 +138,11 @@ export async function runBacktest(candles, options = {}) {
         // pass strategy-scoring options like excludeVoteModules through the
         // backtest loop without backtestEngine needing to know what any
         // particular option means - it's just forwarded verbatim.
-        extraSignalContext = {}
+        extraSignalContext = {},
+        // Candles before this index are indicator/context warmup only.
+        // They may be supplied to generateSignal(), but they must not
+        // create scored spot or binary trades.
+        scoreStartIndex = 0
     } = options;
 
     if (!Array.isArray(candles) || candles.length < 2) {
@@ -136,7 +175,8 @@ export async function runBacktest(candles, options = {}) {
             takeProfit: null,
             candlesSinceOpen: 0,
             confidence: null,
-            regime: null
+            regime: null,
+            openedAt: null
         };
         lastDirection[id] = null;
     });
@@ -144,34 +184,38 @@ export async function runBacktest(candles, options = {}) {
     const total = candles.length;
 
     for (let i = 0; i < total; i++) {
+        const isScoredCandle = i >= scoreStartIndex;
+
         // 1. Resolve any binary predictions whose expiry has arrived at this index.
-        for (let p = pendingBinary.length - 1; p >= 0; p--) {
-            const prediction = pendingBinary[p];
-            const targetIndex = prediction.entryIndex + prediction.expiryLength;
-            if (targetIndex > i) continue;
+        if (isScoredCandle) {
+            for (let p = pendingBinary.length - 1; p >= 0; p--) {
+                const prediction = pendingBinary[p];
+                const targetIndex = prediction.entryIndex + prediction.expiryLength;
+                if (targetIndex > i) continue;
 
-            const exitCandle = candles[targetIndex];
-            // Binary/fixed-expiry bets settle against the strike (entry)
-            // price a broker would actually have quoted, not the bare
-            // candle close - apply the same entry/exit fill model as the
-            // spot leg so a near-the-money result isn't scored as a win
-            // purely because costs were ignored.
-            const exitPrice = assetClass
-                ? applyExitCost(exitCandle.close, prediction.direction, assetClass, costs)
-                : exitCandle.close;
-            const win = prediction.direction === "BUY"
-                ? exitPrice > prediction.entryPrice
-                : exitPrice < prediction.entryPrice;
+                const exitCandle = candles[targetIndex];
+                // Binary/fixed-expiry bets settle against the strike (entry)
+                // price a broker would actually have quoted, not the bare
+                // candle close - apply the same entry/exit fill model as the
+                // spot leg so a near-the-money result isn't scored as a win
+                // purely because costs were ignored.
+                const exitPrice = assetClass
+                    ? applyExitCost(exitCandle.close, prediction.direction, assetClass, costs)
+                    : exitCandle.close;
+                const win = prediction.direction === "BUY"
+                    ? exitPrice > prediction.entryPrice
+                    : exitPrice < prediction.entryPrice;
 
-            resolvedBinary.push({
-                strategy: prediction.strategy,
-                expiryLength: prediction.expiryLength,
-                direction: prediction.direction,
-                entryPrice: prediction.entryPrice,
-                exitPrice,
-                win
-            });
-            pendingBinary.splice(p, 1);
+                resolvedBinary.push({
+                    strategy: prediction.strategy,
+                    expiryLength: prediction.expiryLength,
+                    direction: prediction.direction,
+                    entryPrice: prediction.entryPrice,
+                    exitPrice,
+                    win
+                });
+                pendingBinary.splice(p, 1);
+            }
         }
 
         // 2. Build the same rolling window the live app would have had at this point.
@@ -179,10 +223,20 @@ export async function runBacktest(candles, options = {}) {
         const windowCandles = candles.slice(windowStart, i + 1);
         const candleTime = candles[i].time;
 
+        if (i === scoreStartIndex) {
+            strategyIds.forEach((id) => {
+                lastDirection[id] = null;
+            });
+        }
+
         // 3. One generateSignal() call per strategy per candle, shared by both models.
         strategyIds.forEach((id) => {
             const signal = generateSignal(windowCandles, id, { higherTrend: getHigherTrend(candleTime), ...extraSignalContext });
             const position = spotPositions[id];
+
+            if (!isScoredCandle) {
+                return;
+            }
 
             /*
              * ============================================================
@@ -319,7 +373,10 @@ export async function runBacktest(candles, options = {}) {
             candleCount: total,
             from: candles[0].time,
             to: candles.at(-1).time,
+            executionModel: "risk-managed-candle",
             maxWindow,
+            scoreStartIndex,
+            warmupCandles: scoreStartIndex,
             strategiesRun: strategyIds.length,
             higherTimeframeApplied: Boolean(dailyCandles),
             executionCostsApplied: Boolean(assetClass),
