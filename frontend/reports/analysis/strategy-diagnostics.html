@@ -1,0 +1,650 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+  body{font-family: Arial, Helvetica, sans-serif; padding:28px; color:#111}
+  pre, code{font-family: Menlo, monospace; background:#f6f8fa;padding:4px}
+  h1,h2,h3{color:#0b5cff}
+  table{border-collapse:collapse}
+  table td, table th{border:1px solid #ddd;padding:6px}
+  </style></head><body><h1>Strategy Diagnostics</h1>
+<p>Generated: 2026-08-16T23:39:30.866Z</p>
+<h2>Research Integrity</h2>
+<ul>
+<li>Method: rolling-origin-out-of-sample-evaluation</li>
+<li>Optimisation performed: no</li>
+<li>Market/timeframe combinations: 12 / 12</li>
+<li>All folds have full warm-up: YES</li>
+<li>All required HTF context available: YES</li>
+</ul>
+<h2>Diagnostic Summary</h2>
+<ul>
+<li>Strategies analysed: 13</li>
+<li>Signal failures: undefined</li>
+<li>Cost failures: undefined</li>
+<li>Regime dependent: undefined</li>
+<li>Confidence sensitive: undefined</li>
+</ul>
+<h2>Strategy Diagnosis</h2>
+<table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th align="right">Trades</th>
+<th align="right">Gross Exp.</th>
+<th align="right">Net Exp.</th>
+<th align="right">Cost Drag</th>
+<th align="right">PF</th>
+<th>Diagnosis</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>EMA Pullback (ADX Filter)</td>
+<td align="right">141</td>
+<td align="right">-0.051%</td>
+<td align="right">-0.181%</td>
+<td align="right">-0.130%</td>
+<td align="right">0.03</td>
+<td>SIGNAL_AND_EXIT_FAILURE</td>
+<td>Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</td>
+</tr>
+<tr>
+<td>Trend Following 2 (EMA 50/200)</td>
+<td align="right">222</td>
+<td align="right">-0.002%</td>
+<td align="right">-0.204%</td>
+<td align="right">-0.202%</td>
+<td align="right">0.17</td>
+<td>SIGNAL_AND_EXIT_FAILURE</td>
+<td>Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</td>
+</tr>
+<tr>
+<td>Pullback (Fib)</td>
+<td align="right">472</td>
+<td align="right">-0.032%</td>
+<td align="right">-0.235%</td>
+<td align="right">-0.203%</td>
+<td align="right">0.07</td>
+<td>SIGNAL_AND_EXIT_FAILURE</td>
+<td>Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</td>
+</tr>
+<tr>
+<td>Mean Reversion 2 (RSI Range)</td>
+<td align="right">36</td>
+<td align="right">-0.001%</td>
+<td align="right">-0.236%</td>
+<td align="right">-0.235%</td>
+<td align="right">0.12</td>
+<td>SIGNAL_AND_EXIT_FAILURE</td>
+<td>Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</td>
+</tr>
+<tr>
+<td>Breakout</td>
+<td align="right">407</td>
+<td align="right">-0.025%</td>
+<td align="right">-0.237%</td>
+<td align="right">-0.212%</td>
+<td align="right">0.07</td>
+<td>SIGNAL_AND_EXIT_FAILURE</td>
+<td>Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</td>
+</tr>
+<tr>
+<td>Mean Reversion</td>
+<td align="right">67</td>
+<td align="right">-0.028%</td>
+<td align="right">-0.245%</td>
+<td align="right">-0.217%</td>
+<td align="right">0.05</td>
+<td>SIGNAL_AND_EXIT_FAILURE</td>
+<td>Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</td>
+</tr>
+<tr>
+<td>EMA165 SAR ROC21</td>
+<td align="right">394</td>
+<td align="right">-0.029%</td>
+<td align="right">-0.254%</td>
+<td align="right">-0.225%</td>
+<td align="right">0.10</td>
+<td>SIGNAL_AND_EXIT_FAILURE</td>
+<td>Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</td>
+</tr>
+<tr>
+<td>Range Trading</td>
+<td align="right">75</td>
+<td align="right">-0.034%</td>
+<td align="right">-0.261%</td>
+<td align="right">-0.227%</td>
+<td align="right">0.05</td>
+<td>SIGNAL_AND_EXIT_FAILURE</td>
+<td>Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</td>
+</tr>
+<tr>
+<td>Scalping</td>
+<td align="right">197</td>
+<td align="right">-0.008%</td>
+<td align="right">-0.263%</td>
+<td align="right">-0.255%</td>
+<td align="right">0.11</td>
+<td>SIGNAL_AND_EXIT_FAILURE</td>
+<td>Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</td>
+</tr>
+<tr>
+<td>Trend Follow</td>
+<td align="right">153</td>
+<td align="right">-0.055%</td>
+<td align="right">-0.264%</td>
+<td align="right">-0.209%</td>
+<td align="right">0.15</td>
+<td>SIGNAL_AND_EXIT_FAILURE</td>
+<td>Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</td>
+</tr>
+<tr>
+<td>Balanced</td>
+<td align="right">90</td>
+<td align="right">-0.059%</td>
+<td align="right">-0.306%</td>
+<td align="right">-0.247%</td>
+<td align="right">0.11</td>
+<td>SIGNAL_AND_EXIT_FAILURE</td>
+<td>Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</td>
+</tr>
+<tr>
+<td>Momentum</td>
+<td align="right">4</td>
+<td align="right">-0.003%</td>
+<td align="right">-0.313%</td>
+<td align="right">-0.310%</td>
+<td align="right">0.00</td>
+<td>SIGNAL_FAILURE</td>
+<td>The strategy has negative gross expectancy. Do not optimise execution costs yet; investigate the entry/exit logic first.</td>
+</tr>
+<tr>
+<td>Breakout 2 (Volume Confirmed)</td>
+<td align="right">164</td>
+<td align="right">-0.018%</td>
+<td align="right">-0.328%</td>
+<td align="right">-0.310%</td>
+<td align="right">0.05</td>
+<td>SIGNAL_AND_EXIT_FAILURE</td>
+<td>Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</td>
+</tr>
+</tbody></table>
+<h2>EMA Pullback (ADX Filter)</h2>
+<p><strong>Diagnosis:</strong> SIGNAL_AND_EXIT_FAILURE</p>
+<p><strong>Recommendation:</strong> Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</p>
+<h3>Gross vs Net</h3>
+<ul>
+<li>Gross expectancy: -0.051%</li>
+<li>Net expectancy: -0.181%</li>
+<li>Average cost drag: -0.130%</li>
+</ul>
+<h3>MAE / MFE</h3>
+<ul>
+<li>Average MAE: -0.143%</li>
+<li>Median MAE: -0.082%</li>
+<li>Average MFE: +0.055%</li>
+<li>Median MFE: +0.000%</li>
+</ul>
+<h3>Holding Time</h3>
+<ul>
+<li>Average candles: 20.8</li>
+<li>Median candles: 7.0</li>
+<li>Winning trades: 38.1 candles average</li>
+<li>Losing trades: 19.9 candles average</li>
+</ul>
+<h3>Exit Outcomes</h3>
+<ul>
+<li>Winners: 7 (+4.965%)</li>
+<li>Losers: 134 (+95.035%)</li>
+<li>Stop-loss exits: +79.433%</li>
+<li>Take-profit exits: +10.638%</li>
+<li>Timeout exits: +9.929%</li>
+</ul>
+<h3>Exit Reason Breakdown</h3>
+<ul>
+<li>stop_loss: 112 (+79.433%)</li>
+<li>take_profit: 15 (+10.638%)</li>
+<li>end_of_data: 14 (+9.929%)</li>
+</ul>
+<h2>Trend Following 2 (EMA 50/200)</h2>
+<p><strong>Diagnosis:</strong> SIGNAL_AND_EXIT_FAILURE</p>
+<p><strong>Recommendation:</strong> Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</p>
+<h3>Gross vs Net</h3>
+<ul>
+<li>Gross expectancy: -0.002%</li>
+<li>Net expectancy: -0.204%</li>
+<li>Average cost drag: -0.202%</li>
+</ul>
+<h3>MAE / MFE</h3>
+<ul>
+<li>Average MAE: -0.165%</li>
+<li>Median MAE: -0.087%</li>
+<li>Average MFE: +0.135%</li>
+<li>Median MFE: +0.014%</li>
+</ul>
+<h3>Holding Time</h3>
+<ul>
+<li>Average candles: 35.0</li>
+<li>Median candles: 9.0</li>
+<li>Winning trades: 66.8 candles average</li>
+<li>Losing trades: 29.2 candles average</li>
+</ul>
+<h3>Exit Outcomes</h3>
+<ul>
+<li>Winners: 34 (+15.315%)</li>
+<li>Losers: 188 (+84.685%)</li>
+<li>Stop-loss exits: +65.315%</li>
+<li>Take-profit exits: +21.622%</li>
+<li>Timeout exits: +13.063%</li>
+</ul>
+<h3>Exit Reason Breakdown</h3>
+<ul>
+<li>stop_loss: 145 (+65.315%)</li>
+<li>take_profit: 48 (+21.622%)</li>
+<li>end_of_data: 29 (+13.063%)</li>
+</ul>
+<h2>Pullback (Fib)</h2>
+<p><strong>Diagnosis:</strong> SIGNAL_AND_EXIT_FAILURE</p>
+<p><strong>Recommendation:</strong> Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</p>
+<h3>Gross vs Net</h3>
+<ul>
+<li>Gross expectancy: -0.032%</li>
+<li>Net expectancy: -0.235%</li>
+<li>Average cost drag: -0.203%</li>
+</ul>
+<h3>MAE / MFE</h3>
+<ul>
+<li>Average MAE: -0.163%</li>
+<li>Median MAE: -0.090%</li>
+<li>Average MFE: +0.096%</li>
+<li>Median MFE: +0.004%</li>
+</ul>
+<h3>Holding Time</h3>
+<ul>
+<li>Average candles: 24.7</li>
+<li>Median candles: 7.0</li>
+<li>Winning trades: 55.0 candles average</li>
+<li>Losing trades: 21.4 candles average</li>
+</ul>
+<h3>Exit Outcomes</h3>
+<ul>
+<li>Winners: 46 (+9.746%)</li>
+<li>Losers: 426 (+90.254%)</li>
+<li>Stop-loss exits: +69.915%</li>
+<li>Take-profit exits: +22.669%</li>
+<li>Timeout exits: +7.415%</li>
+</ul>
+<h3>Exit Reason Breakdown</h3>
+<ul>
+<li>stop_loss: 330 (+69.915%)</li>
+<li>take_profit: 107 (+22.669%)</li>
+<li>end_of_data: 35 (+7.415%)</li>
+</ul>
+<h2>Mean Reversion 2 (RSI Range)</h2>
+<p><strong>Diagnosis:</strong> SIGNAL_AND_EXIT_FAILURE</p>
+<p><strong>Recommendation:</strong> Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</p>
+<h3>Gross vs Net</h3>
+<ul>
+<li>Gross expectancy: -0.001%</li>
+<li>Net expectancy: -0.236%</li>
+<li>Average cost drag: -0.235%</li>
+</ul>
+<h3>MAE / MFE</h3>
+<ul>
+<li>Average MAE: -0.154%</li>
+<li>Median MAE: -0.071%</li>
+<li>Average MFE: +0.098%</li>
+<li>Median MFE: +0.021%</li>
+</ul>
+<h3>Holding Time</h3>
+<ul>
+<li>Average candles: 13.4</li>
+<li>Median candles: 8.0</li>
+<li>Winning trades: 31.9 candles average</li>
+<li>Losing trades: 9.0 candles average</li>
+</ul>
+<h3>Exit Outcomes</h3>
+<ul>
+<li>Winners: 7 (+19.444%)</li>
+<li>Losers: 29 (+80.556%)</li>
+<li>Stop-loss exits: +61.111%</li>
+<li>Take-profit exits: +33.333%</li>
+<li>Timeout exits: +5.556%</li>
+</ul>
+<h3>Exit Reason Breakdown</h3>
+<ul>
+<li>stop_loss: 22 (+61.111%)</li>
+<li>take_profit: 12 (+33.333%)</li>
+<li>end_of_data: 2 (+5.556%)</li>
+</ul>
+<h2>Breakout</h2>
+<p><strong>Diagnosis:</strong> SIGNAL_AND_EXIT_FAILURE</p>
+<p><strong>Recommendation:</strong> Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</p>
+<h3>Gross vs Net</h3>
+<ul>
+<li>Gross expectancy: -0.025%</li>
+<li>Net expectancy: -0.237%</li>
+<li>Average cost drag: -0.212%</li>
+</ul>
+<h3>MAE / MFE</h3>
+<ul>
+<li>Average MAE: -0.161%</li>
+<li>Median MAE: -0.095%</li>
+<li>Average MFE: +0.100%</li>
+<li>Median MFE: +0.000%</li>
+</ul>
+<h3>Holding Time</h3>
+<ul>
+<li>Average candles: 20.3</li>
+<li>Median candles: 7.0</li>
+<li>Winning trades: 32.4 candles average</li>
+<li>Losing trades: 19.0 candles average</li>
+</ul>
+<h3>Exit Outcomes</h3>
+<ul>
+<li>Winners: 38 (+9.337%)</li>
+<li>Losers: 369 (+90.663%)</li>
+<li>Stop-loss exits: +71.253%</li>
+<li>Take-profit exits: +22.359%</li>
+<li>Timeout exits: +6.388%</li>
+</ul>
+<h3>Exit Reason Breakdown</h3>
+<ul>
+<li>stop_loss: 290 (+71.253%)</li>
+<li>take_profit: 91 (+22.359%)</li>
+<li>end_of_data: 26 (+6.388%)</li>
+</ul>
+<h2>Mean Reversion</h2>
+<p><strong>Diagnosis:</strong> SIGNAL_AND_EXIT_FAILURE</p>
+<p><strong>Recommendation:</strong> Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</p>
+<h3>Gross vs Net</h3>
+<ul>
+<li>Gross expectancy: -0.028%</li>
+<li>Net expectancy: -0.245%</li>
+<li>Average cost drag: -0.217%</li>
+</ul>
+<h3>MAE / MFE</h3>
+<ul>
+<li>Average MAE: -0.175%</li>
+<li>Median MAE: -0.093%</li>
+<li>Average MFE: +0.087%</li>
+<li>Median MFE: +0.031%</li>
+</ul>
+<h3>Holding Time</h3>
+<ul>
+<li>Average candles: 8.8</li>
+<li>Median candles: 6.0</li>
+<li>Winning trades: 13.9 candles average</li>
+<li>Losing trades: 7.7 candles average</li>
+</ul>
+<h3>Exit Outcomes</h3>
+<ul>
+<li>Winners: 12 (+17.910%)</li>
+<li>Losers: 55 (+82.090%)</li>
+<li>Stop-loss exits: +70.149%</li>
+<li>Take-profit exits: +28.358%</li>
+<li>Timeout exits: +1.493%</li>
+</ul>
+<h3>Exit Reason Breakdown</h3>
+<ul>
+<li>take_profit: 19 (+28.358%)</li>
+<li>stop_loss: 47 (+70.149%)</li>
+<li>end_of_data: 1 (+1.493%)</li>
+</ul>
+<h2>EMA165 SAR ROC21</h2>
+<p><strong>Diagnosis:</strong> SIGNAL_AND_EXIT_FAILURE</p>
+<p><strong>Recommendation:</strong> Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</p>
+<h3>Gross vs Net</h3>
+<ul>
+<li>Gross expectancy: -0.029%</li>
+<li>Net expectancy: -0.254%</li>
+<li>Average cost drag: -0.225%</li>
+</ul>
+<h3>MAE / MFE</h3>
+<ul>
+<li>Average MAE: -0.193%</li>
+<li>Median MAE: -0.116%</li>
+<li>Average MFE: +0.123%</li>
+<li>Median MFE: +0.019%</li>
+</ul>
+<h3>Holding Time</h3>
+<ul>
+<li>Average candles: 18.3</li>
+<li>Median candles: 7.0</li>
+<li>Winning trades: 31.6 candles average</li>
+<li>Losing trades: 16.6 candles average</li>
+</ul>
+<h3>Exit Outcomes</h3>
+<ul>
+<li>Winners: 43 (+10.914%)</li>
+<li>Losers: 351 (+89.086%)</li>
+<li>Stop-loss exits: +69.036%</li>
+<li>Take-profit exits: +23.858%</li>
+<li>Timeout exits: +7.107%</li>
+</ul>
+<h3>Exit Reason Breakdown</h3>
+<ul>
+<li>stop_loss: 272 (+69.036%)</li>
+<li>take_profit: 94 (+23.858%)</li>
+<li>end_of_data: 28 (+7.107%)</li>
+</ul>
+<h2>Range Trading</h2>
+<p><strong>Diagnosis:</strong> SIGNAL_AND_EXIT_FAILURE</p>
+<p><strong>Recommendation:</strong> Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</p>
+<h3>Gross vs Net</h3>
+<ul>
+<li>Gross expectancy: -0.034%</li>
+<li>Net expectancy: -0.261%</li>
+<li>Average cost drag: -0.227%</li>
+</ul>
+<h3>MAE / MFE</h3>
+<ul>
+<li>Average MAE: -0.180%</li>
+<li>Median MAE: -0.105%</li>
+<li>Average MFE: +0.090%</li>
+<li>Median MFE: +0.032%</li>
+</ul>
+<h3>Holding Time</h3>
+<ul>
+<li>Average candles: 9.6</li>
+<li>Median candles: 6.0</li>
+<li>Winning trades: 13.9 candles average</li>
+<li>Losing trades: 8.8 candles average</li>
+</ul>
+<h3>Exit Outcomes</h3>
+<ul>
+<li>Winners: 12 (+16.000%)</li>
+<li>Losers: 63 (+84.000%)</li>
+<li>Stop-loss exits: +72.000%</li>
+<li>Take-profit exits: +26.667%</li>
+<li>Timeout exits: +1.333%</li>
+</ul>
+<h3>Exit Reason Breakdown</h3>
+<ul>
+<li>take_profit: 20 (+26.667%)</li>
+<li>stop_loss: 54 (+72.000%)</li>
+<li>end_of_data: 1 (+1.333%)</li>
+</ul>
+<h2>Scalping</h2>
+<p><strong>Diagnosis:</strong> SIGNAL_AND_EXIT_FAILURE</p>
+<p><strong>Recommendation:</strong> Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</p>
+<h3>Gross vs Net</h3>
+<ul>
+<li>Gross expectancy: -0.008%</li>
+<li>Net expectancy: -0.263%</li>
+<li>Average cost drag: -0.255%</li>
+</ul>
+<h3>MAE / MFE</h3>
+<ul>
+<li>Average MAE: -0.191%</li>
+<li>Median MAE: -0.099%</li>
+<li>Average MFE: +0.148%</li>
+<li>Median MFE: +0.006%</li>
+</ul>
+<h3>Holding Time</h3>
+<ul>
+<li>Average candles: 36.7</li>
+<li>Median candles: 9.0</li>
+<li>Winning trades: 121.2 candles average</li>
+<li>Losing trades: 23.8 candles average</li>
+</ul>
+<h3>Exit Outcomes</h3>
+<ul>
+<li>Winners: 26 (+13.198%)</li>
+<li>Losers: 171 (+86.802%)</li>
+<li>Stop-loss exits: +71.066%</li>
+<li>Take-profit exits: +17.259%</li>
+<li>Timeout exits: +11.675%</li>
+</ul>
+<h3>Exit Reason Breakdown</h3>
+<ul>
+<li>take_profit: 34 (+17.259%)</li>
+<li>stop_loss: 140 (+71.066%)</li>
+<li>end_of_data: 23 (+11.675%)</li>
+</ul>
+<h2>Trend Follow</h2>
+<p><strong>Diagnosis:</strong> SIGNAL_AND_EXIT_FAILURE</p>
+<p><strong>Recommendation:</strong> Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</p>
+<h3>Gross vs Net</h3>
+<ul>
+<li>Gross expectancy: -0.055%</li>
+<li>Net expectancy: -0.264%</li>
+<li>Average cost drag: -0.209%</li>
+</ul>
+<h3>MAE / MFE</h3>
+<ul>
+<li>Average MAE: -0.245%</li>
+<li>Median MAE: -0.174%</li>
+<li>Average MFE: +0.174%</li>
+<li>Median MFE: +0.039%</li>
+</ul>
+<h3>Holding Time</h3>
+<ul>
+<li>Average candles: 30.3</li>
+<li>Median candles: 11.0</li>
+<li>Winning trades: 60.9 candles average</li>
+<li>Losing trades: 25.9 candles average</li>
+</ul>
+<h3>Exit Outcomes</h3>
+<ul>
+<li>Winners: 19 (+12.418%)</li>
+<li>Losers: 134 (+87.582%)</li>
+<li>Stop-loss exits: +69.935%</li>
+<li>Take-profit exits: +17.647%</li>
+<li>Timeout exits: +12.418%</li>
+</ul>
+<h3>Exit Reason Breakdown</h3>
+<ul>
+<li>stop_loss: 107 (+69.935%)</li>
+<li>take_profit: 27 (+17.647%)</li>
+<li>end_of_data: 19 (+12.418%)</li>
+</ul>
+<h2>Balanced</h2>
+<p><strong>Diagnosis:</strong> SIGNAL_AND_EXIT_FAILURE</p>
+<p><strong>Recommendation:</strong> Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</p>
+<h3>Gross vs Net</h3>
+<ul>
+<li>Gross expectancy: -0.059%</li>
+<li>Net expectancy: -0.306%</li>
+<li>Average cost drag: -0.247%</li>
+</ul>
+<h3>MAE / MFE</h3>
+<ul>
+<li>Average MAE: -0.269%</li>
+<li>Median MAE: -0.161%</li>
+<li>Average MFE: +0.218%</li>
+<li>Median MFE: +0.060%</li>
+</ul>
+<h3>Holding Time</h3>
+<ul>
+<li>Average candles: 53.4</li>
+<li>Median candles: 13.5</li>
+<li>Winning trades: 160.6 candles average</li>
+<li>Losing trades: 40.0 candles average</li>
+</ul>
+<h3>Exit Outcomes</h3>
+<ul>
+<li>Winners: 10 (+11.111%)</li>
+<li>Losers: 80 (+88.889%)</li>
+<li>Stop-loss exits: +74.444%</li>
+<li>Take-profit exits: +12.222%</li>
+<li>Timeout exits: +13.333%</li>
+</ul>
+<h3>Exit Reason Breakdown</h3>
+<ul>
+<li>stop_loss: 67 (+74.444%)</li>
+<li>take_profit: 11 (+12.222%)</li>
+<li>end_of_data: 12 (+13.333%)</li>
+</ul>
+<h2>Momentum</h2>
+<p><strong>Diagnosis:</strong> SIGNAL_FAILURE</p>
+<p><strong>Recommendation:</strong> The strategy has negative gross expectancy. Do not optimise execution costs yet; investigate the entry/exit logic first.</p>
+<h3>Gross vs Net</h3>
+<ul>
+<li>Gross expectancy: -0.003%</li>
+<li>Net expectancy: -0.313%</li>
+<li>Average cost drag: -0.310%</li>
+</ul>
+<h3>MAE / MFE</h3>
+<ul>
+<li>Average MAE: -0.387%</li>
+<li>Median MAE: -0.379%</li>
+<li>Average MFE: +0.752%</li>
+<li>Median MFE: +0.911%</li>
+</ul>
+<h3>Holding Time</h3>
+<ul>
+<li>Average candles: 84.5</li>
+<li>Median candles: 50.5</li>
+<li>Winning trades: n/a candles average</li>
+<li>Losing trades: 84.5 candles average</li>
+</ul>
+<h3>Exit Outcomes</h3>
+<ul>
+<li>Winners: 0 (+0.000%)</li>
+<li>Losers: 4 (+100.000%)</li>
+<li>Stop-loss exits: +50.000%</li>
+<li>Take-profit exits: +0.000%</li>
+<li>Timeout exits: +50.000%</li>
+</ul>
+<h3>Exit Reason Breakdown</h3>
+<ul>
+<li>stop_loss: 2 (+50.000%)</li>
+<li>end_of_data: 2 (+50.000%)</li>
+</ul>
+<h2>Breakout 2 (Volume Confirmed)</h2>
+<p><strong>Diagnosis:</strong> SIGNAL_AND_EXIT_FAILURE</p>
+<p><strong>Recommendation:</strong> Signal shows directional bias but exits are destroying realised profits. Review stop placement, take-profit sizing and holding period before changing the entry.</p>
+<h3>Gross vs Net</h3>
+<ul>
+<li>Gross expectancy: -0.018%</li>
+<li>Net expectancy: -0.328%</li>
+<li>Average cost drag: -0.310%</li>
+</ul>
+<h3>MAE / MFE</h3>
+<ul>
+<li>Average MAE: -0.184%</li>
+<li>Median MAE: -0.108%</li>
+<li>Average MFE: +0.109%</li>
+<li>Median MFE: +0.000%</li>
+</ul>
+<h3>Holding Time</h3>
+<ul>
+<li>Average candles: 7.7</li>
+<li>Median candles: 3.5</li>
+<li>Winning trades: 13.1 candles average</li>
+<li>Losing trades: 7.3 candles average</li>
+</ul>
+<h3>Exit Outcomes</h3>
+<ul>
+<li>Winners: 11 (+6.707%)</li>
+<li>Losers: 153 (+93.293%)</li>
+<li>Stop-loss exits: +63.415%</li>
+<li>Take-profit exits: +33.537%</li>
+<li>Timeout exits: +3.049%</li>
+</ul>
+<h3>Exit Reason Breakdown</h3>
+<ul>
+<li>take_profit: 55 (+33.537%)</li>
+<li>stop_loss: 104 (+63.415%)</li>
+<li>end_of_data: 5 (+3.049%)</li>
+</ul>
+</body></html>
