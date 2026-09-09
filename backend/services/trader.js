@@ -8,6 +8,39 @@ const client = new ccxt.binance({
     enableRateLimit: true
 });
 
+function assertProtectiveLevels(side, entryPrice, stopLoss, takeProfit) {
+    if (![entryPrice, stopLoss, takeProfit].every(Number.isFinite)) {
+        throw new Error("Live orders require finite entry, stop-loss, and take-profit prices");
+    }
+    const valid = side === "buy"
+        ? stopLoss < entryPrice && takeProfit > entryPrice
+        : stopLoss > entryPrice && takeProfit < entryPrice;
+    if (!valid) {
+        throw new Error("Live stop-loss and take-profit must be on the correct side of entry");
+    }
+}
+
+async function placeOcoExit({ symbol, side, quantity, stopLoss, takeProfit }) {
+    await client.loadMarkets();
+    const market = client.market(symbol);
+    const exitSide = side === "buy" ? "sell" : "buy";
+    const amount = client.amountToPrecision(symbol, quantity);
+    const limitPrice = client.priceToPrecision(symbol, takeProfit);
+    const stopPrice = client.priceToPrecision(symbol, stopLoss);
+
+    // Binance spot OCO: the take-profit leg is a limit order and the
+    // stop-loss leg is a stop-limit order. Both legs cancel each other.
+    return client.privatePostOrderListOco({
+        symbol: market.id,
+        side: exitSide.toUpperCase(),
+        quantity: amount,
+        price: limitPrice,
+        stopPrice,
+        stopLimitPrice: stopPrice,
+        stopLimitTimeInForce: "GTC"
+    });
+}
+
 export async function placeOrder({
     signal,
     symbol = "BTC/USDT",
@@ -43,18 +76,39 @@ export async function placeOrder({
         throw new Error("Missing BINANCE_KEY or BINANCE_SECRET");
     }
 
-    // NOTE: this places a plain market order only. stopLoss/takeProfit are
-    // NOT attached as real exchange bracket/OCO orders — Binance spot market
-    // orders don't support that here, and building real OCO order placement
-    // is a separate piece of work. They're returned below so the caller can
-    // display them and manage the exit manually (or via the paper engine,
-    // which does enforce them automatically).
-    const order = await client.createMarketOrder(symbol, side, quantity);
+    assertProtectiveLevels(side, Number(signal.price), stopLoss, takeProfit);
 
-    return {
-        ...order,
-        stopLoss,
-        takeProfit,
-        stopLossNote: "Informational only — not placed on the exchange"
-    };
+    const order = await client.createMarketOrder(symbol, side, quantity);
+    const filledQuantity = Number(order.filled ?? order.amount ?? quantity);
+    const entryPrice = Number(order.average ?? order.price ?? signal.price);
+    assertProtectiveLevels(side, entryPrice, stopLoss, takeProfit);
+
+    try {
+        const protection = await placeOcoExit({
+            symbol,
+            side,
+            quantity: filledQuantity,
+            stopLoss,
+            takeProfit
+        });
+
+        return {
+            ...order,
+            stopLoss,
+            takeProfit,
+            protection,
+            protectionStatus: "exchange_oco_placed"
+        };
+    } catch (error) {
+        // Never leave an unprotected spot position open after an OCO failure.
+        try {
+            await client.createMarketOrder(symbol, side === "buy" ? "sell" : "buy", filledQuantity);
+        } catch (rollbackError) {
+            throw new Error(`Protective OCO failed (${error.message}); emergency flatten also failed (${rollbackError.message})`);
+        }
+        throw new Error(`Protective OCO failed; entry was flattened: ${error.message}`);
+    }
+
 }
+
+export { assertProtectiveLevels };

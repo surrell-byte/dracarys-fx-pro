@@ -137,9 +137,13 @@ export class ForexDataService {
             if (latest) {
                 this.tickCallbacks.forEach(callback => callback({ ...latest, closed: false }));
 
-                if (this.lastEmittedTime === null || latest.time > this.lastEmittedTime) {
-                    this.lastEmittedTime = latest.time;
-                    this.candleCallbacks.forEach(callback => callback({ ...latest, closed: true }));
+                // Twelve Data returns the current/forming bar as the newest
+                // row. Emit the preceding row as closed so signals never use
+                // an incomplete FX candle.
+                const closedCandle = rows.length > 1 ? rows.at(-2) : null;
+                if (closedCandle && (this.lastEmittedTime === null || closedCandle.time > this.lastEmittedTime)) {
+                    this.lastEmittedTime = closedCandle.time;
+                    this.candleCallbacks.forEach(callback => callback({ ...closedCandle, closed: true }));
                 }
             }
         } catch (error) {
@@ -213,6 +217,6 @@ async function fetchTimeSeries(symbol, interval, { outputsize, endDate = null } 
         low: Number(row.low),
         close: Number(row.close),
         volume: null, // Twelve Data forex bars don't carry real trade volume
-        closed: true
+        closed: false
     })).sort((a, b) => a.time - b.time); // defensive - don't fully trust `order=asc` under all conditions
 }

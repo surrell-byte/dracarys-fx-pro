@@ -17,6 +17,7 @@ vi.mock("ccxt", () => ({
 }));
 
 const { fetchCandles } = await import("../scripts/scheduler/candles.js");
+const { ForexDataService } = await import("../src/js/services/forexDataService.js");
 
 const ORIGINAL_API_KEY = process.env.TWELVEDATA_API_KEY;
 
@@ -151,5 +152,39 @@ describe("fetchCandles - forex (Twelve Data via REST)", () => {
 
         const calledUrl = fetchSpy.mock.calls[0][0];
         expect(calledUrl).toContain("interval=1min");
+    });
+});
+
+describe("ForexDataService - completed candle polling", () => {
+    it("emits the newest bar as a tick and the preceding bar as closed", async () => {
+        const service = new ForexDataService("eurusd", "1m");
+        const ticks = [];
+        const candles = [];
+        service.onTick((candle) => ticks.push(candle));
+        service.onCandle((candle) => candles.push(candle));
+        service.getCandles = vi.fn()
+            .mockResolvedValueOnce([
+                { time: 1, close: 1 },
+                { time: 2, close: 2 },
+                { time: 3, close: 3 }
+            ])
+            .mockResolvedValueOnce([
+                { time: 2, close: 2 },
+                { time: 3, close: 3 },
+                { time: 4, close: 4 }
+            ]);
+        service.manualDisconnect = true;
+
+        await service.poll();
+        await service.poll();
+
+        expect(ticks.map((candle) => [candle.time, candle.closed])).toEqual([
+            [3, false],
+            [4, false]
+        ]);
+        expect(candles.map((candle) => [candle.time, candle.closed])).toEqual([
+            [2, true],
+            [3, true]
+        ]);
     });
 });

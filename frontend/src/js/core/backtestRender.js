@@ -92,11 +92,12 @@ export function renderWalkForwardResults(elements, result) {
                 const perFold = folds.map((f) => f.spotLeaderboard.find((row) => row.strategy === strategyId) ?? null);
                 const label = perFold.find((row) => row)?.label ?? strategyId;
                 const pnls = perFold.map((row) => row?.totalPnl ?? 0);
-                const positiveFolds = perFold.filter((row) => row && row.trades > 0 && row.totalPnl > 0).length;
-                const foldsWithTrades = perFold.filter((row) => row && row.trades > 0).length;
-                const avgPnl = foldsWithTrades ? pnls.reduce((a, b) => a + b, 0) / foldsWithTrades : 0;
+                const positiveFolds = perFold.filter((row) => row && row.totalPnl > 0).length;
+                const profitableFoldPct = folds.length > 0 ? (positiveFolds / folds.length) * 100 : 0;
+                const totalPnl = pnls.reduce((sum, value) => sum + value, 0);
+                const avgPnl = folds.length > 0 ? totalPnl / folds.length : 0;
 
-                return { label, perFold, positiveFolds, foldsWithTrades, avgPnl };
+                return { label, perFold, positiveFolds, profitableFoldPct, avgPnl, totalPnl };
             }).sort((a, b) => b.avgPnl - a.avgPnl);
 
             elements.backtestWalkForwardBody.innerHTML = rows.map((row) => `
@@ -106,7 +107,10 @@ export function renderWalkForwardResults(elements, result) {
                         ? `<td data-pnl="${pnlDirection(f.totalPnl)}">${formatSigned(f.totalPnl)}% <span class="subtle">(${f.trades}t)</span></td>`
                         : `<td class="empty-history">--</td>`
                     ).join("")}
-                    <td>${row.positiveFolds}/${row.foldsWithTrades || folds.length}</td>
+                    <td>
+                        ${row.positiveFolds}/${folds.length}
+                        <span class="subtle">(${formatNumber(row.profitableFoldPct, 0)}%)</span>
+                    </td>
                     <td data-pnl="${pnlDirection(row.avgPnl)}">${formatSigned(row.avgPnl)}%</td>
                 </tr>
             `).join("");

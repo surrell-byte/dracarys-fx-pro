@@ -13,10 +13,10 @@ Generated: 2026-08-16T23:39:30.866Z
 ## Diagnostic Summary
 
 - Strategies analysed: 13
-- Signal failures: undefined
-- Cost failures: undefined
-- Regime dependent: undefined
-- Confidence sensitive: undefined
+- Signal failures: 13
+- Cost failures: 0
+- Exit model failures: 12
+- Holding-period failures: 0
 
 ## Strategy Diagnosis
 

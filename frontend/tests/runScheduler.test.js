@@ -173,10 +173,10 @@ describe("scanSymbol", () => {
         expect(sendDiscordMessageMock).toHaveBeenCalledWith("formatted");
     });
 
-    it("does not notify when the signal is below the configured threshold", async () => {
+    it("does not notify when an eligible signal is below the notification threshold", async () => {
         fetchCandlesMock.mockResolvedValue([makeCandle({ time: Date.now() - 5 * 60_000 })]);
         shouldOpenMock.mockReturnValue(true);
-        generateSignalMock.mockReturnValue({ type: "BUY", price: 100, confidence: 40, quality: "Low" });
+        generateSignalMock.mockReturnValue({ type: "BUY", price: 100, confidence: 80, quality: "High", risk: { stopLoss: 98, takeProfit: 105 } });
         meetsNotifyThresholdMock.mockReturnValue(false);
 
         await scanSymbol({ symbol: "BTC/USDT", assetClass: "crypto" });

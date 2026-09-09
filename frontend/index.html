@@ -713,6 +713,21 @@
                                     </thead>
                                     <tbody id="binaryStatsBody"></tbody>
                                 </table>
+                                    <div class="manual-binary-row">
+                                        <label>
+                                            Logged expiry (candles)
+                                            <select id="manualExpiry">
+                                                <option value="1">1</option>
+                                                <option value="3">3</option>
+                                                <option value="5" selected>5</option>
+                                                <option value="10">10</option>
+                                                <option value="15">15</option>
+                                            </select>
+                                        </label>
+                                        <button id="manualWinBtn" type="button">Log Win</button>
+                                        <button id="manualLossBtn" type="button">Log Loss</button>
+                                        <button id="manualSkipBtn" type="button">Skip</button>
+                                    </div>
                                 <p class="subtle">Scoped to the current symbol — stats no longer pool win rates across different pairs under the same strategy/expiry bucket.</p>
                             </div>
 

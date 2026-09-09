@@ -28,18 +28,78 @@ function calculateRawPnlPct(type, entryPrice, exitPrice) {
     throw new Error(`Unsupported position type: ${type}`);
 }
 
-function finaliseExit({ position, rawExitPrice, closeReason, candleTime, assetClass, costs }) {
-    const { type, entryPrice } = position;
-    const exitPrice = applyExitCost(rawExitPrice, type, assetClass, costs);
-    const rawPnlPct = calculateRawPnlPct(type, entryPrice, exitPrice);
-    const pnlPct = applyFeeToPnl(rawPnlPct, assetClass, costs);
+function finaliseExit({
+    position,
+    rawExitPrice,
+    closeReason,
+    candleTime,
+    assetClass,
+    costs
+}) {
+    const {
+        type,
+        entryPrice,
+        rawEntryPrice = entryPrice
+    } = position;
+
+    const exitPrice =
+        applyExitCost(
+            rawExitPrice,
+            type,
+            assetClass,
+            costs
+        );
+
+    /*
+     * GROSS:
+     *
+     * Uses the actual raw market entry and raw market exit.
+     * No spread, slippage or fees.
+     */
+    const grossPnlPct =
+        calculateRawPnlPct(
+            type,
+            rawEntryPrice,
+            rawExitPrice
+        );
+
+    /*
+     * NET:
+     *
+     * Uses the execution-adjusted entry/exit and fees.
+     */
+    const rawNetPnlPct =
+        calculateRawPnlPct(
+            type,
+            entryPrice,
+            exitPrice
+        );
+
+    const pnlPct =
+        applyFeeToPnl(
+            rawNetPnlPct,
+            assetClass,
+            costs
+        );
 
     return {
         outcome: pnlPct >= 0 ? "win" : "loss",
+
         closeReason,
+
+        rawExitPrice,
+
         exitPrice,
+
+        grossPnlPercent: grossPnlPct,
+
         pnlPct,
-        timestamp: candleTime ?? null
+
+        costDragPercent:
+            pnlPct - grossPnlPct,
+
+        timestamp:
+            candleTime ?? null
     };
 }
 
