@@ -1,94 +1,154 @@
 #!/usr/bin/env node
-// scripts/analysis/buildScorecards.js
-//
-// Reads the JSON report produced by multiMarketWalkForward.js and prints
-// strategy / regime / asset scorecards built from it. Thin CLI wrapper
-// over src/js/analysis/scorecard.js.
-//
-// Usage:
-//   node scripts/analysis/buildScorecards.js
-//   node scripts/analysis/buildScorecards.js --input reports/analysis/custom.json
 
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { buildStrategyScorecard, buildRegimeScorecard, buildAssetScorecard } from "../../src/js/analysis/scorecard.js";
+import { buildResearchAudit } from "../../src/js/analysis/scorecard.js";
 
 function parseArgs(argv) {
-    const args = { input: "reports/analysis/multi-market-walk-forward.json" };
+    const args = {
+        input: "reports/analysis/multi-market-walk-forward.json",
+        output: "reports/analysis/research-audit.json"
+    };
+
     for (let i = 0; i < argv.length; i += 1) {
         if (argv[i] === "--input") args.input = argv[++i];
+        if (argv[i] === "--output") args.output = argv[++i];
     }
+
     return args;
 }
 
-function pct(n, digits = 3) {
-    return n == null ? "n/a" : `${n >= 0 ? "+" : ""}${n.toFixed(digits)}%`;
+function fmt(value, digits = 3) {
+    return Number.isFinite(value) ? value.toFixed(digits) : "n/a";
 }
 
-function num(n, digits = 2) {
-    return n == null ? "n/a" : n.toFixed(digits);
+function pct(value, digits = 2) {
+    return Number.isFinite(value) ? `${value >= 0 ? "+" : ""}${value.toFixed(digits)}%` : "n/a";
 }
 
-function printTable(title, header, rows) {
+function printTable(title, columns, rows) {
     console.log(`\n${title}\n`);
-    console.log(header.join(" | "));
-    console.log(header.map(() => "---").join(" | "));
-    rows.forEach((row) => console.log(row.join(" | ")));
+    console.log(columns.join(" | "));
+    console.log(columns.map(() => "---").join(" | "));
+    for (const row of rows) console.log(row.join(" | "));
 }
 
 async function main() {
     const args = parseArgs(process.argv.slice(2));
     const inputPath = path.resolve(args.input);
+    const outputPath = path.resolve(args.output);
 
-    console.log(`Reading walk-forward report: ${inputPath}`);
-
+    console.log(`Reading research report:\n${inputPath}`);
     const raw = await fs.readFile(inputPath, "utf8");
     const report = JSON.parse(raw);
-    const rows = (report.results ?? []).flatMap((r) => r.rows ?? []);
+    const audit = buildResearchAudit(report);
 
-    if (!rows.length) {
-        console.error("No rows found in this report - did the walk-forward run produce any successful (non-error) results?");
-        process.exit(1);
-    }
-
-    console.log(`Loaded ${rows.length} rows from ${report.results.length} market/timeframe results.`);
-
-    const strategyScorecard = buildStrategyScorecard(rows);
     printTable(
-        "STRATEGY SCORECARD (sorted by avg expectancy, best first)",
-        ["Strategy", "Samples", "Trades", "AvgExpectancy", "MedianExpectancy", "AvgWinRate", "AvgPF", "AvgSharpe", "Consistency%"],
-        strategyScorecard.map((r) => [
-            r.strategy, r.samples, r.totalTrades, pct(r.avgExpectancy), pct(r.medianExpectancy),
-            num(r.avgWinRate, 1) + "%", num(r.avgProfitFactor), num(r.avgSharpe, 3), num(r.expectancyConsistency, 1)
+        "STRATEGY SCORECARD",
+        [
+            "Strategy",
+            "Trades",
+            "Win%",
+            "Expectancy",
+            "95% Block CI",
+            "PF",
+            "Sharpe",
+            "MaxDD",
+            "Positive",
+            "Negative",
+            "Flat",
+            "Verdict"
+        ],
+        audit.strategyScorecard.map(
+            (row) => [
+                row.label,
+                row.trades,
+                pct(row.winRate, 1),
+                pct(row.expectancy),
+
+                row.expectancyCI
+                    ? `${pct(row.expectancyCI.lower)} → ${pct(row.expectancyCI.upper)}`
+                    : "n/a",
+
+                fmt(row.profitFactor, 2),
+                fmt(row.sharpe, 3),
+
+                pct(
+                    -Math.abs(
+                        row.maxDrawdown ?? 0
+                    )
+                ),
+
+                row.profitableFolds,
+                row.losingFolds,
+                row.flatFolds,
+
+                row.verdict
+            ]
+        )
+    );
+
+    printTable(
+        "MARKET SCORECARD",
+        ["Market", "Trades", "Win%", "Expectancy", "PF", "Sharpe", "MaxDD"],
+        audit.assetScorecard.map((row) => [
+            row.symbol, row.trades, pct(row.winRate, 1), pct(row.expectancy),
+            fmt(row.profitFactor, 2), fmt(row.sharpe, 3), pct(-Math.abs(row.maxDrawdown ?? 0))
         ])
     );
 
-    const assetScorecard = buildAssetScorecard(rows);
     printTable(
-        "ASSET SCORECARD (sorted by avg expectancy, best first)",
-        ["Symbol", "Samples", "Trades", "AvgExpectancy", "AvgWinRate", "AvgPF"],
-        assetScorecard.map((r) => [r.symbol, r.samples, r.totalTrades, pct(r.avgExpectancy), num(r.avgWinRate, 1) + "%", num(r.avgProfitFactor)])
+        "TIMEFRAME SCORECARD",
+        ["Timeframe", "Trades", "Win%", "Expectancy", "PF", "Sharpe", "MaxDD"],
+        audit.timeframeScorecard.map((row) => [
+            row.timeframe, row.trades, pct(row.winRate, 1), pct(row.expectancy),
+            fmt(row.profitFactor, 2), fmt(row.sharpe, 3), pct(-Math.abs(row.maxDrawdown ?? 0))
+        ])
     );
 
-    const regimeScorecard = buildRegimeScorecard(rows);
+    printTable(
+        "REGIME SCORECARD",
+        ["Regime", "Trades", "Win%", "Expectancy", "PF", "Sharpe", "MaxDD"],
+        audit.regimeScorecard.map((row) => [
+            row.regime, row.trades, pct(row.winRate, 1), pct(row.expectancy),
+            fmt(row.profitFactor, 2), fmt(row.sharpe, 3), pct(-Math.abs(row.maxDrawdown ?? 0))
+        ])
+    );
 
-    if (regimeScorecard.length === 1 && regimeScorecard[0].regime === "UNKNOWN") {
-        console.log(
-            "\nREGIME SCORECARD: skipped - rows don't carry a `regime` field yet " +
-            "(the walk-forward runner doesn't tag folds with a market regime). " +
-            "Wire regime detection into the row-producing side to enable this."
-        );
-    } else {
-        printTable(
-            "REGIME SCORECARD (sorted by avg expectancy, best first)",
-            ["Regime", "Samples", "Trades", "AvgExpectancy", "AvgWinRate", "AvgPF"],
-            regimeScorecard.map((r) => [r.regime, r.samples, r.totalTrades, pct(r.avgExpectancy), num(r.avgWinRate, 1) + "%", num(r.avgProfitFactor)])
-        );
-    }
+    printTable(
+        "STRATEGY × MARKET",
+        ["Strategy", "Market", "Trades", "Expectancy", "PF", "MaxDD", "Verdict"],
+        audit.strategyMarket.map((row) => [
+            row.strategy, row.symbol, row.trades, pct(row.expectancy),
+            fmt(row.profitFactor, 2), pct(-Math.abs(row.maxDrawdown ?? 0)), row.verdict
+        ])
+    );
+
+    printTable(
+        "STRATEGY × TIMEFRAME",
+        ["Strategy", "Timeframe", "Trades", "Expectancy", "PF", "MaxDD", "Verdict"],
+        audit.strategyTimeframe.map((row) => [
+            row.strategy, row.timeframe, row.trades, pct(row.expectancy),
+            fmt(row.profitFactor, 2), pct(-Math.abs(row.maxDrawdown ?? 0)), row.verdict
+        ])
+    );
+
+    printTable(
+        "STRATEGY × CONFIDENCE",
+        ["Strategy", "Band", "Trades", "Win%", "Expectancy", "PF", "Verdict"],
+        audit.confidenceScorecard.map((row) => [
+            row.label, row.band, row.trades, pct(row.winRate, 1), pct(row.expectancy),
+            fmt(row.profitFactor, 2), row.verdict
+        ])
+    );
+
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
+    await fs.writeFile(outputPath, JSON.stringify(audit, null, 2));
+    console.log(`\n✅ Research audit saved:\n${outputPath}`);
 }
 
 main().catch((error) => {
-    console.error("buildScorecards failed:", error.message);
+    console.error("Research audit failed:", error);
     process.exit(1);
 });

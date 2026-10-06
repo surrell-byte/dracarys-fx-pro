@@ -6,13 +6,17 @@ regime detection), a backtester, a 24/7 paper-trading scheduler, and a
 reporting layer.
 
 **Current status: research / paper-trading platform.** Live order execution
-exists but does not attach real exchange stop-loss/take-profit brackets - see
-[Live trading](#live-trading-status) before enabling it with real funds.
+now attempts Binance spot OCO protection, but it remains disabled until the
+readiness gate and exchange-test verification pass.
+
+See [STRATEGY_PLAYBOOK.md](STRATEGY_PLAYBOOK.md) for operating guidance for
+each strategy, and run `npm --prefix frontend run live-readiness` before any
+live deployment.
 
 ## Architecture
 
 ```
-                MARKET DATA (Binance crypto / Twelve Data FX)
+                MARKET DATA (Binance crypto / Deriv FX)
                               │
                     UnifiedMarketDataService
                               │
@@ -57,7 +61,7 @@ frontend/
     ai/              confidence-pipeline scoring (NOT a calibrated
                      probability model - see Statistics below)
     core/            app.js - DOM wiring, chart, paper trading, UI state
-    services/        market data adapters (Binance, Twelve Data)
+    services/        market data adapters (Binance, Deriv)
   scripts/scheduler/  24/7 Node scheduler: candles.js, virtualTrades.js,
                        portfolioRisk.js, db.js, runScheduler.js
   api/                Vercel serverless functions (proxy to backend,
@@ -91,16 +95,20 @@ a zip or repo.
 
 | Variable | Used by | Purpose |
 |---|---|---|
-| `TWELVE_DATA_API_KEY` | scheduler, frontend | FX candle data |
+| `VITE_DERIV_APP_ID` | frontend | Deriv public FX market-data app ID |
 | `DISCORD_WEBHOOK_URL` | scheduler | Trade/report notifications (treat as a credential - anyone with the URL can post to your channel) |
 | `REPORTS_API_USER` / `REPORTS_API_PASSWORD` | api/live-reports.js | Basic auth on the reports proxy |
 | `TRADE_API_KEY` | backend/services/server.js | Auth for the `/trade` endpoint |
 | `LIVE_TRADING` | backend/services/server.js | Must be explicitly `true` to allow real orders - see below |
+| `BINANCE_KEY` / `BINANCE_SECRET` | backend/services/trader.js | Binance account credentials; use testnet credentials for verification |
+| `EXCHANGE_SIDE_PROTECTION` | readiness gate | Must be `true` only after OCO behavior is verified on the target deployment |
+| `BINANCE_OCO_VERIFIED_AT` | readiness gate | Timestamp recorded after successful Binance OCO testnet verification |
 
 ### Development
 
 ```bash
 npm run dev              # runs check-imports, then starts the Vite dev server
+npm run vercel:dev       # starts local Vercel dev server with API routes enabled
 npm --prefix frontend run scheduler   # runs the 24/7 paper-trading scheduler
 ```
 
@@ -163,14 +171,23 @@ Read this before setting `LIVE_TRADING=true` against a real account.
 - The `/trade` endpoint is authenticated (`TRADE_API_KEY`), CORS-restricted,
   rate-limited, validates order parameters, enforces a hard max order size,
   and requires the explicit `LIVE_TRADING=true` kill switch.
-- **However:** stop-loss/take-profit levels are **not** attached as real
-  exchange bracket/OCO orders. The app computes and displays SL/TP levels,
-  but the actual order sent to the exchange is a plain market order. If the
-  scheduler process, VM, or network goes down after entry, an open live
-  position has no exchange-side protection.
+- The backend enters at market and immediately submits a Binance spot OCO
+  exit containing the take-profit limit and stop-loss limit. If OCO placement
+  fails, it attempts to flatten the entry and returns an error.
+- Exchange behavior still needs verification with Binance testnet or a
+  zero-risk account, including partial fills, symbol precision, minimum order
+  sizes, OCO rejection, and restart/reconciliation behavior.
 - Paper trading and backtesting are safe to use as-is. Treat live trading as
-  not production-ready for unattended real-money use until real bracket/OCO
-  orders are implemented.
+  not production-ready for unattended real-money use until those integration
+  checks and the readiness gate pass.
+
+## Deriv FX market data
+
+The frontend uses Deriv's official public WebSocket market-data API for FX
+candles. It does not authorize a Deriv account or place contracts. The current
+bar is treated as forming and only the preceding bar is emitted to the signal
+engine as closed. Real-money execution remains disabled until an official,
+broker-matched contract workflow is implemented and verified on a demo account.
 
 ## Statistics & calibration
 

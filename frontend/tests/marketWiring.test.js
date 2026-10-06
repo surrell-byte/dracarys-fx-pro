@@ -93,6 +93,19 @@ describe("executionDecision.decideExecution", () => {
         expect(decision).toEqual({ action: "paper" });
     });
 
+    it("skips when the signal expiry exceeds the configured max expiry window", () => {
+        const decision = decideExecution(
+            { ...baseSignal, expiry: { minutes: 90, label: "1 hour" } },
+            { ...baseSettings, maxExpiryMinutes: 60 },
+            okContext
+        );
+
+        expect(decision).toEqual({
+            action: "skip",
+            statusMessage: "Expiry exceeds 60m maximum"
+        });
+    });
+
     it("returns 'live' when every gate passes and mode is not paper", () => {
         const decision = decideExecution(baseSignal, { ...baseSettings, mode: "dry-run" }, okContext);
         expect(decision).toEqual({ action: "live" });

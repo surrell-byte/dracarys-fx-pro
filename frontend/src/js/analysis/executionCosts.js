@@ -14,7 +14,17 @@
 
 export const DEFAULT_EXECUTION_COSTS = {
     crypto: { spreadPct: 0.0005, slippagePct: 0.0003, feePct: 0.002 },
-    forex: { spreadPct: 0.0002, slippagePct: 0.0001, feePct: 0.0000 }
+    forex: { spreadPct: 0.0002, slippagePct: 0.0001, feePct: 0.0000 },
+
+    // Maker-fee crypto profile: same spread/slippage assumptions as taker
+    // crypto (still a resting-order fill, not a magically better price),
+    // but the round-trip fee reflects posting liquidity (limit orders,
+    // e.g. GTX/post-only) instead of taking it. Typical maker fees run
+    // roughly half of taker on major exchanges; 0.001 (0.1%) round-trip
+    // is a conservative estimate, not the cheapest tier available.
+    // Opt-in only — a strategy has to actually be able to post-only fill
+    // (i.e. not need immediate execution) for this profile to be honest.
+    cryptoMaker: { spreadPct: 0.0005, slippagePct: 0.0003, feePct: 0.001 }
 };
 
 function costsFor(assetClass, costs) {

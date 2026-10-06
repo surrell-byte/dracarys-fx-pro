@@ -1,3 +1,5 @@
+import { STRATEGIES } from "@signals/strategyRegistry.js";
+export { STRATEGIES };
 import {
     calculateADX,
     calculateATR,
@@ -50,228 +52,19 @@ import { analyzeMitigation } from "@smartMoney/mitigation.js";
 const DEFAULT_ATR_STOP_MULTIPLIER = 1.8;
 const DEFAULT_REWARD_MULTIPLE = 2.5;
 
-export const STRATEGIES = {
-    balanced: {
-        label: "Balanced",
-        threshold: 55,
-        weights: {
-            trend: 20,
-            momentum: 20,
-            rsi: 20,
-            bands: 15,
-            pattern: 15,
-            levels: 10,
-            adxBoost: 10
-        }
-    },
-    trend: {
-        label: "Trend Follow",
-        threshold: 60,
-        weights: {
-            trend: 35,
-            momentum: 30,
-            rsi: 8,
-            bands: 5,
-            pattern: 8,
-            levels: 4,
-            adxBoost: 15
-        }
-    },
-    meanReversion: {
-        label: "Mean Reversion",
-        threshold: 58,
-        weights: {
-            trend: 6,
-            momentum: 8,
-            rsi: 35,
-            bands: 28,
-            pattern: 12,
-            levels: 16,
-            adxBoost: -8
-        }
-    },
-    breakout: {
-        label: "Breakout",
-        threshold: 62,
-        weights: {
-            trend: 22,
-            momentum: 24,
-            rsi: 6,
-            bands: 18,
-            pattern: 8,
-            levels: 25,
-            adxBoost: 16
-        }
-    },
-    scalping: {
-        label: "Scalping",
-        threshold: 52,
-        weights: {
-            trend: 12,
-            momentum: 24,
-            rsi: 24,
-            bands: 16,
-            pattern: 18,
-            levels: 8,
-            adxBoost: 5
-        }
-    },
-    pullback: {
-        label: "Pullback (Fib)",
-        threshold: 58,
-        weights: {
-            trend: 28,
-            momentum: 16,
-            rsi: 10,
-            bands: 6,
-            pattern: 14,
-            levels: 22,
-            adxBoost: 12
-        }
-    },
-    momentum: {
-        label: "Momentum",
-        threshold: 60,
-        weights: {
-            trend: 18,
-            momentum: 32,
-            rsi: 4,
-            bands: 6,
-            pattern: 10,
-            levels: 6,
-            adxBoost: 18
-        }
-    },
-    range: {
-        label: "Range Trading",
-        threshold: 56,
-        weights: {
-            trend: 4,
-            momentum: 6,
-            rsi: 30,
-            bands: 30,
-            pattern: 14,
-            levels: 18,
-            adxBoost: -16
-        }
-    },
-    ema165SarRoc: {
-        label: "EMA165 SAR ROC21",
-        threshold: 68,
-        custom: "ema165SarRoc",
-        weights: {
-            trend: 0,
-            momentum: 0,
-            rsi: 0,
-            bands: 0,
-            pattern: 0,
-            levels: 0,
-            adxBoost: 0
-        }
-    },
-    // "Trend-Following" duplicates the existing "Trend Follow" id/name above,
-    // so this one is differentiated as "Trend Following 2".
-    trendFollowing2: {
-        label: "Trend Following 2 (EMA 50/200)",
-        threshold: 62,
-        custom: "trendFollowing2",
-        useHigherTimeframe: true,
-        atrStopMultiplier: 2.0,
-        rewardMultiple: 2.5,
-        weights: {
-            trend: 0,
-            momentum: 0,
-            rsi: 0,
-            bands: 0,
-            pattern: 0,
-            levels: 0,
-            adxBoost: 0
-        }
-    },
-    // "Breakout + Volume Confirmation" duplicates the existing "Breakout" id/name above,
-    // so this one is differentiated as "Breakout 2".
-    breakout2: {
-        label: "Breakout 2 (Volume Confirmed)",
-        threshold: 60,
-        custom: "breakout2",
-        atrStopMultiplier: 1.5,
-        rewardMultiple: 2.0,
-        weights: {
-            trend: 0,
-            momentum: 0,
-            rsi: 0,
-            bands: 0,
-            pattern: 0,
-            levels: 0,
-            adxBoost: 0
-        }
-    },
-    // "Mean Reversion with RSI" duplicates the existing "Mean Reversion" id/name above,
-    // so this one is differentiated as "Mean Reversion 2".
-    meanReversion2: {
-        label: "Mean Reversion 2 (RSI Range)",
-        threshold: 55,
-        custom: "meanReversion2",
-        weights: {
-            trend: 0,
-            momentum: 0,
-            rsi: 0,
-            bands: 0,
-            pattern: 0,
-            levels: 0,
-            adxBoost: 0
-        }
-    },
-    // "EMA Pullback + ADX Trend Filter" is conceptually close to the existing
-    // "Pullback (Fib)" strategy, so this one is named to make the distinction
-    // clear: EMA20/50 trend with a strict ADX gate and a single-candle
-    // wick-below/close-above EMA20 confirmation trigger (not a fib retracement).
-    emaPullbackAdx: {
-        label: "EMA Pullback (ADX Filter)",
-        threshold: 65,
-        custom: "emaPullbackAdx",
-        useHigherTimeframe: true,
-        atrStopMultiplier: 1.5,
-        rewardMultiple: 2.5,
-        weights: {
-            trend: 0,
-            momentum: 0,
-            rsi: 0,
-            bands: 0,
-            pattern: 0,
-            levels: 0,
-            adxBoost: 0
-        }
-    },
-    // Milestone 1: the new module pipeline. Every indicator votes
-    // independently as { signal, confidence, reason }; ai/confidence.js
-    // combines the votes instead of hand-tuned point addition. This sits
-    // alongside every strategy above rather than replacing any of them —
-    // pick it from the dropdown like any other strategy to compare it
-    // against the hand-tuned ones on the same market.
-    aiConfidence: {
-        label: "AI Confidence Pipeline",
-        threshold: 50,
-        custom: "aiConfidence",
-        weights: {
-            trend: 0,
-            momentum: 0,
-            rsi: 0,
-            bands: 0,
-            pattern: 0,
-            levels: 0,
-            adxBoost: 0
-        }
-    }
-};
-
 export function generateSignal(candles, strategyId = "balanced", context = {}) {
     const strategy = STRATEGIES[strategyId] ?? STRATEGIES.balanced;
     const higherTrend = context?.higherTrend ?? "NEUTRAL";
+    const riskOverrides = context?.strategyRiskOverrides ?? {};
+    const breakoutLookback = riskOverrides.lookback ?? 50;
+    const breakoutRequiredCandles = Math.max(
+        60,
+        Number.isFinite(Number(breakoutLookback)) ? Number(breakoutLookback) + 1 : 60
+    );
 
     const requiredCandles = strategy.custom === "ema165SarRoc" ? 180
         : strategy.custom === "trendFollowing2" ? 220
-        : strategy.custom === "breakout2" ? 60
+        : strategy.custom === "breakout2" ? breakoutRequiredCandles
         : strategy.custom === "meanReversion2" ? 40
         : 55;
 
@@ -343,7 +136,9 @@ export function generateSignal(candles, strategyId = "balanced", context = {}) {
             atrPercent,
             candles,
             price,
-            volumeRatio
+            volumeRatio,
+            lookback: breakoutLookback,
+            volumeRatioThreshold: riskOverrides.volumeRatio ?? 1.5
         })
         : strategy.custom === "meanReversion2"
         ? scoreMeanReversion2({
@@ -363,6 +158,21 @@ export function generateSignal(candles, strategyId = "balanced", context = {}) {
             ema50,
             volumeRatio
         })
+        : strategy.custom === "derivBinaryMomentum"
+        ? scoreDerivBinaryMomentum({
+            closes,
+            ema20,
+            ema50,
+            rsi,
+            adx,
+            atrPercent
+        })
+        : strategy.custom === "sessionMeanReversion"
+        ? scoreSessionMeanReversion({ candles, closes, highs, lows, price, rsi, adx, atr })
+        : strategy.custom === "sessionMomentum"
+        ? scoreSessionMomentum({ candles, closes, ema20, ema50, adx, atrPercent })
+        : strategy.custom === "metaLabelFilter"
+        ? scoreMetaLabelFilter({ closes, ema20, ema50, rsi, adx })
         : strategy.custom === "aiConfidence"
         ? scoreAiConfidencePipeline({
             candles,
@@ -429,8 +239,8 @@ export function generateSignal(candles, strategyId = "balanced", context = {}) {
     // real position-splitting logic this app doesn't have yet.
     let risk = null;
     if (type !== "HOLD" && Number.isFinite(atr) && atr > 0) {
-        const baseStopMultiplier = strategy.atrStopMultiplier ?? DEFAULT_ATR_STOP_MULTIPLIER;
-        const baseRewardMultiple = strategy.rewardMultiple ?? DEFAULT_REWARD_MULTIPLE;
+        const baseStopMultiplier = riskOverrides.atrStopMultiplier ?? strategy.atrStopMultiplier ?? DEFAULT_ATR_STOP_MULTIPLIER;
+        const baseRewardMultiple = riskOverrides.rewardMultiple ?? strategy.rewardMultiple ?? DEFAULT_REWARD_MULTIPLE;
         // risk/regimeStops.js: widen/tighten the strategy's own stop and
         // reward target based on the same regime already gating the AI
         // Confidence Pipeline's module weights above - a multiplicative
@@ -672,9 +482,8 @@ function scoreTrendFollowing2({ adx, atrPercent, ema20, ema50, ema200, price, vo
 
 // Rules: mark a prior range, require price to close beyond it (not just
 // wick through), and only trust the breakout if volume is >= 1.5x average.
-function scoreBreakout2({ adx, atrPercent, candles, price, volumeRatio }) {
+function scoreBreakout2({ adx, atrPercent, candles, price, volumeRatio, lookback = 50, volumeRatioThreshold = 1.5 }) {
     const reasons = [];
-    const lookback = 50;
     // Exclude the current/latest candle so we're comparing the close against
     // a range that was established *before* this bar, not including it.
     const priorCandles = candles.slice(-lookback - 1, -1);
@@ -697,14 +506,14 @@ function scoreBreakout2({ adx, atrPercent, candles, price, volumeRatio }) {
     const rangeLow = Math.min(...priorCandles.map(c => c.low));
     const brokeAbove = price > rangeHigh;
     const brokeBelow = price < rangeLow;
-    const volumeConfirmed = Number.isFinite(volumeRatio) && volumeRatio >= 1.5;
+    const volumeConfirmed = Number.isFinite(volumeRatio) && volumeRatio >= volumeRatioThreshold;
 
     if (brokeAbove) {
         buyScore += 50;
         reasons.push("Close above prior range resistance");
         if (volumeConfirmed) {
             buyScore += 30;
-            reasons.push("Volume >= 1.5x average");
+            reasons.push(`Volume >= ${volumeRatioThreshold}x average`);
         } else {
             penalty += 20;
             reasons.push("Breakout lacks volume confirmation");
@@ -714,7 +523,7 @@ function scoreBreakout2({ adx, atrPercent, candles, price, volumeRatio }) {
         reasons.push("Close below prior range support");
         if (volumeConfirmed) {
             sellScore += 30;
-            reasons.push("Volume >= 1.5x average");
+            reasons.push(`Volume >= ${volumeRatioThreshold}x average`);
         } else {
             penalty += 20;
             reasons.push("Breakdown lacks volume confirmation");
@@ -871,6 +680,167 @@ function scoreEmaPullbackAdx({ adx, atrPercent, candles, ema20, ema50, volumeRat
         quality: getQuality({ adx: adx?.adx, atrPercent, volumeRatio, agreement, penalty }),
         reasons
     };
+}
+
+// Binary-specific directional model. It deliberately avoids spot exits and
+// smart-money labels: the target is direction at a fixed expiry, so a signal
+// must agree across several recent horizons while avoiding exhausted RSI.
+function scoreDerivBinaryMomentum({ closes, ema20, ema50, rsi, adx, atrPercent }) {
+    let buyScore = 0;
+    let sellScore = 0;
+    let penalty = 0;
+    const reasons = [];
+    const price = closes.at(-1);
+    const changes = [1, 3, 6].map(horizon => {
+        const start = closes.at(-(horizon + 1));
+        return Number.isFinite(start) && start !== 0 ? ((price - start) / start) * 100 : null;
+    });
+
+    if (Number.isFinite(ema20) && Number.isFinite(ema50)) {
+        if (ema20 > ema50) {
+            buyScore += 25;
+            reasons.push("EMA trend up");
+        } else if (ema20 < ema50) {
+            sellScore += 25;
+            reasons.push("EMA trend down");
+        }
+    }
+
+    const validChanges = changes.filter(Number.isFinite);
+    const bullishHorizons = validChanges.filter(change => change > 0).length;
+    const bearishHorizons = validChanges.filter(change => change < 0).length;
+    if (bullishHorizons === validChanges.length && validChanges.length === 3) {
+        buyScore += 45;
+        reasons.push("1/3/6-candle momentum aligned up");
+    } else if (bearishHorizons === validChanges.length && validChanges.length === 3) {
+        sellScore += 45;
+        reasons.push("1/3/6-candle momentum aligned down");
+    } else {
+        penalty += 20;
+        reasons.push("Momentum horizons disagree");
+    }
+
+    if (Number.isFinite(adx?.adx) && adx.adx >= 18) {
+        if (buyScore > sellScore) buyScore += 15;
+        if (sellScore > buyScore) sellScore += 15;
+        reasons.push("ADX confirms directional movement");
+    } else {
+        penalty += 15;
+        reasons.push("ADX too weak for expiry trade");
+    }
+
+    if (rsi >= 72 && buyScore > sellScore) {
+        buyScore = 0;
+        penalty += 15;
+        reasons.push("Long momentum is overbought");
+    } else if (rsi <= 28 && sellScore > buyScore) {
+        sellScore = 0;
+        penalty += 15;
+        reasons.push("Short momentum is oversold");
+    }
+
+    if (Number.isFinite(atrPercent) && atrPercent <= 0) {
+        penalty += 20;
+        reasons.push("Invalid volatility reading");
+    }
+
+    const agreement = Math.abs(buyScore - sellScore);
+    return {
+        buyScore: Math.max(0, buyScore),
+        sellScore: Math.max(0, sellScore),
+        penalty,
+        quality: getQuality({ adx: adx?.adx, atrPercent, volumeRatio: null, agreement, penalty }),
+        reasons
+    };
+}
+
+function scoreSessionMeanReversion({ candles, closes, highs, lows, price, rsi, adx, atr }) {
+    const latestTime = candles.at(-1)?.time;
+    const dayStart = Number.isFinite(latestTime)
+        ? new Date(latestTime).setUTCHours(0, 0, 0, 0)
+        : null;
+    const sessionCloses = candles
+        .filter(candle => dayStart !== null && candle.time >= dayStart)
+        .map(candle => Number(candle.close))
+        .filter(Number.isFinite);
+    const mean = sessionCloses.length ? sessionCloses.reduce((sum, value) => sum + value, 0) / sessionCloses.length : null;
+    const deviation = Number.isFinite(mean) && Number.isFinite(atr) && atr > 0 ? (price - mean) / atr : null;
+    let buyScore = 0;
+    let sellScore = 0;
+    let penalty = 0;
+    const reasons = [];
+
+    if (Number.isFinite(adx?.adx) && adx.adx >= 22) {
+        penalty += 30;
+        reasons.push("Trend too strong for mean reversion");
+    } else if (Number.isFinite(deviation) && deviation <= -1.5 && rsi <= 40) {
+        buyScore = 75;
+        reasons.push("Price stretched below session mean");
+        reasons.push("RSI confirms downside exhaustion");
+    } else if (Number.isFinite(deviation) && deviation >= 1.5 && rsi >= 60) {
+        sellScore = 75;
+        reasons.push("Price stretched above session mean");
+        reasons.push("RSI confirms upside exhaustion");
+    } else {
+        penalty += 25;
+        reasons.push("No session stretch setup");
+    }
+
+    const agreement = Math.abs(buyScore - sellScore);
+    return {
+        buyScore,
+        sellScore,
+        penalty,
+        quality: getQuality({ adx: adx?.adx, atrPercent: Number.isFinite(atr) && price > 0 ? (atr / price) * 100 : null, volumeRatio: null, agreement, penalty }),
+        reasons
+    };
+}
+
+function scoreSessionMomentum({ candles, closes, ema20, ema50, adx, atrPercent }) {
+    const hour = new Date(candles.at(-1)?.time ?? 0).getUTCHours();
+    const liquidSession = hour >= 7 && hour < 17;
+    const recent = closes.at(-1);
+    const prior = closes.at(-4);
+    const move = Number.isFinite(recent) && Number.isFinite(prior) && prior !== 0 ? ((recent - prior) / prior) * 100 : null;
+    let buyScore = 0;
+    let sellScore = 0;
+    let penalty = liquidSession ? 0 : 35;
+    const reasons = [liquidSession ? "Liquid UTC session" : "Outside liquid UTC session"];
+
+    if (Number.isFinite(ema20) && Number.isFinite(ema50) && Number.isFinite(move) && Number.isFinite(adx?.adx) && adx.adx >= 20) {
+        if (ema20 > ema50 && move > 0) {
+            buyScore = 80;
+            reasons.push("Trend and short momentum aligned up");
+        } else if (ema20 < ema50 && move < 0) {
+            sellScore = 80;
+            reasons.push("Trend and short momentum aligned down");
+        } else {
+            penalty += 20;
+            reasons.push("Trend and momentum disagree");
+        }
+    } else {
+        penalty += 20;
+        reasons.push("Trend-strength data unavailable");
+    }
+
+    const agreement = Math.abs(buyScore - sellScore);
+    return { buyScore, sellScore, penalty, quality: getQuality({ adx: adx?.adx, atrPercent, volumeRatio: null, agreement, penalty }), reasons };
+}
+
+function scoreMetaLabelFilter({ closes, ema20, ema50, rsi, adx }) {
+    const current = closes.at(-1);
+    const prior = closes.at(-6);
+    const move = Number.isFinite(current) && Number.isFinite(prior) && prior !== 0 ? ((current - prior) / prior) * 100 : null;
+    const up = ema20 > ema50 && move > 0 && rsi >= 45 && rsi <= 68;
+    const down = ema20 < ema50 && move < 0 && rsi >= 32 && rsi <= 55;
+    const strong = Number.isFinite(adx?.adx) && adx.adx >= 20;
+    const buyScore = up && strong ? 85 : 0;
+    const sellScore = down && strong ? 85 : 0;
+    const penalty = strong ? 0 : 25;
+    const reasons = [buyScore ? "Meta-filter accepted aligned long" : sellScore ? "Meta-filter accepted aligned short" : "Meta-filter rejected setup"];
+    if (!strong) reasons.push("ADX below acceptance threshold");
+    const agreement = Math.abs(buyScore - sellScore);
+    return { buyScore, sellScore, penalty, quality: getQuality({ adx: adx?.adx, atrPercent: null, volumeRatio: null, agreement, penalty }), reasons };
 }
 
 // Milestone 1 pipeline: each indicator module votes independently, then
@@ -1071,8 +1041,29 @@ export function scoreStrategy(context) {
         }
     }
 
-    if (strategy === STRATEGIES.range && adx?.adx < 20) {
-        reasons.push("Ranging market");
+    let adxRangeBlocked = false;
+    if (strategy === STRATEGIES.range || strategy === STRATEGIES.meanReversion) {
+        if (Number.isFinite(adx?.adx) && adx.adx < 20) {
+            reasons.push("Ranging market");
+        } else {
+            // Previously "range" only logged a "Ranging market" reason
+            // when ADX < 20 and did nothing otherwise, and "meanReversion"
+            // relied on a -8 adxBoost penalty that was too small to
+            // overcome its own rsi(35)+bands(28) weights (63 pts, well
+            // clear of its 58 threshold) - both let RSI/band
+            // mean-reversion signals fire in confirmed trends, which is
+            // exactly the condition mean-reversion doesn't hold up in.
+            // adxRangeBlocked is enforced at the final return below (scores
+            // added by pattern/levels/adxBoost/volume further down would
+            // otherwise silently undo a zero set here), mirroring the
+            // higher-timeframe block pattern in generateSignal().
+            adxRangeBlocked = true;
+            reasons.push(
+                Number.isFinite(adx?.adx)
+                    ? "Blocked: ADX confirms trend, not range"
+                    : "Blocked: ADX unavailable, cannot confirm range"
+            );
+        }
     }
 
     if (pattern === "bullish") {
@@ -1149,8 +1140,8 @@ export function scoreStrategy(context) {
     }
 
     return {
-        buyScore: Math.max(0, buyScore),
-        sellScore: Math.max(0, sellScore),
+        buyScore: adxRangeBlocked ? 0 : Math.max(0, buyScore),
+        sellScore: adxRangeBlocked ? 0 : Math.max(0, sellScore),
         penalty,
         quality,
         reasons

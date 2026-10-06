@@ -1,0 +1,276 @@
+/*
+ * Pasted React-style dashboard UI adaptation for the existing
+ * vanilla HTML/CSS dashboard. This layer maps the requested visual
+ * structure onto the project’s current CSS tokens without changing the
+ * app’s page architecture or route wiring.
+ */
+
+:root {
+    --pasted-bg: #07110f;
+    --pasted-panel: #101722;
+    --pasted-soft-panel: #141b23;
+    --pasted-line: #273241;
+    --pasted-text: #edf4f2;
+    --pasted-muted: #a8b0b8;
+    --pasted-green: #20c878;
+    --pasted-green-soft: rgba(32, 200, 120, 0.14);
+    --pasted-red: #ff5761;
+    --pasted-orange: #ff951a;
+    --pasted-blue: #84b5ff;
+    --pasted-shadow: rgba(0, 0, 0, 0.44);
+    --font-display: "Inter", "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+body {
+    background:
+        radial-gradient(circle at 70% 0%, rgba(255, 149, 0, 0.08), transparent 22%),
+        radial-gradient(circle at 20% 90%, rgba(32, 200, 120, 0.07), transparent 18%),
+        var(--pasted-bg);
+    color: var(--pasted-text);
+}
+
+.app {
+    min-height: 100vh;
+    background: transparent;
+}
+
+.sidebar {
+    background: #0c1118;
+    border-color: var(--pasted-line);
+}
+
+.logo {
+    color: var(--pasted-text);
+}
+
+.logo span {
+    color: var(--pasted-orange);
+}
+
+.menu button {
+    border-radius: 12px;
+}
+
+.menu button:hover {
+    background: var(--pasted-soft-panel);
+}
+
+.menu button.active {
+    background: var(--pasted-orange);
+    color: var(--pasted-bg);
+}
+
+.menu button.active .menu-icon {
+    background: var(--pasted-bg);
+    color: var(--pasted-orange);
+}
+
+.main {
+    background: var(--pasted-bg);
+}
+
+.topbar {
+    background: transparent;
+    border-bottom-color: var(--pasted-line);
+}
+
+.topbar-left h1 {
+    color: var(--pasted-text);
+}
+
+.eyebrow {
+    color: var(--pasted-muted);
+}
+
+.topbar-center .search-bar {
+    border-radius: 12px;
+    background: var(--pasted-panel);
+    border-color: var(--pasted-line);
+}
+
+.icon-btn,
+.view-all,
+.timeframe-btn {
+    color: var(--pasted-text);
+}
+
+.icon-btn {
+    background: var(--pasted-soft-panel);
+    border-color: var(--pasted-line);
+}
+
+.icon-btn:hover,
+.view-all:hover,
+.timeframe-btn:hover {
+    color: var(--pasted-green);
+    border-color: var(--pasted-green);
+}
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: var(--sp-4);
+}
+
+.kpi-card {
+    border: 1px solid var(--pasted-line);
+    border-radius: 16px;
+    background: var(--pasted-soft-panel);
+    box-shadow: 0 12px 30px var(--pasted-shadow);
+}
+
+.kpi-card::before {
+    background: var(--pasted-orange);
+}
+
+.kpi-label {
+    color: var(--pasted-muted);
+}
+
+.kpi-value {
+    color: var(--pasted-text);
+}
+
+.kpi-sub {
+    color: var(--pasted-muted);
+}
+
+.dashboard-main-grid {
+    grid-template-columns: minmax(800px, 2fr) minmax(320px, 0.9fr);
+    align-items: stretch;
+}
+
+.chart-container {
+    background: var(--pasted-panel);
+    border: 1px solid var(--pasted-line);
+    border-radius: 16px;
+    box-shadow: 0 12px 30px var(--pasted-shadow);
+}
+
+.chart-toolbar {
+    background: var(--pasted-soft-panel);
+    border-bottom-color: var(--pasted-line);
+}
+
+.chart-toolbar-selects select,
+.toolbar-select {
+    background: var(--pasted-panel);
+    color: var(--pasted-text);
+    border-color: var(--pasted-line);
+}
+
+.chart-section {
+    background: var(--pasted-panel);
+}
+
+.chart-section canvas {
+    background: transparent;
+}
+
+.timeframe-btn {
+    border-radius: 8px;
+    color: var(--pasted-muted);
+}
+
+.timeframe-btn.active {
+    background: var(--pasted-orange);
+    color: var(--pasted-bg);
+}
+
+.market-price-card {
+    background: var(--pasted-soft-panel);
+    border: 1px solid var(--pasted-line);
+    border-radius: 16px;
+}
+
+.bottom-card {
+    background: var(--pasted-soft-panel);
+    border: 1px solid var(--pasted-line);
+    border-radius: 16px;
+}
+
+.price-row span,
+.price-row strong,
+.market-symbol,
+.card-title,
+.card-subtitle {
+    color: var(--pasted-text);
+}
+
+.price-row strong {
+    font-family: var(--font-display);
+}
+
+.price-change.up,
+.positive {
+    color: var(--pasted-green);
+}
+
+.price-change.down,
+.negative {
+    color: var(--pasted-red);
+}
+
+.market-list .market-item {
+    border-bottom-color: var(--pasted-line);
+}
+
+.signal-badge {
+    background: var(--pasted-soft-panel);
+    border: 1px solid var(--pasted-line);
+    color: var(--pasted-text);
+}
+
+.signal-badge.signal-buy {
+    background: var(--pasted-green-soft);
+    color: var(--pasted-green);
+    border-color: var(--pasted-green);
+}
+
+.signal-badge.signal-hold {
+    background: rgba(255, 149, 0, 0.12);
+    color: var(--pasted-orange);
+    border-color: var(--pasted-orange);
+}
+
+.ai-insight {
+    background: transparent;
+}
+
+.ai-title {
+    color: var(--pasted-text);
+}
+
+.ai-icon {
+    background: var(--pasted-orange);
+    color: var(--pasted-bg);
+}
+
+.progress-bar {
+    background: var(--pasted-orange);
+}
+
+.status-pill,
+.connection {
+    color: var(--pasted-green);
+    border-color: var(--pasted-green);
+}
+
+.broker-select {
+    color: var(--pasted-muted);
+}
+
+.search {
+    max-width: 420px;
+    border-radius: 10px;
+}
+
+@media (max-width: 1100px) {
+    .dashboard-main-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, minmax(160px, 1fr));
+    }
+}

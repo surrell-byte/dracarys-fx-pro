@@ -43,6 +43,7 @@ export class BinaryOutcomeTracker {
         this.expiryLengths = expiryLengths;
         this.pending = [];
         this.resolved = [];
+        this.skipped = [];
         this.lastDirection = {};
         this.currentSymbol = null;
         this.currentAssetClass = null;
@@ -63,6 +64,39 @@ export class BinaryOutcomeTracker {
             this.lastDirection[id] = null;
         });
         this.save();
+    }
+
+    recordManualOutcome({ strategy, direction, entryPrice, expiryLength, symbol, assetClass, confidence, win }) {
+        if (!this.strategyIds.includes(strategy) || !["BUY", "SELL"].includes(direction)) return false;
+        if (!Number.isFinite(entryPrice) || !Number.isInteger(expiryLength) || ![true, false, null].includes(win)) return false;
+
+        const resolvedSymbol = symbol ?? this.currentSymbol;
+        const result = win === null ? "skip" : win ? "win" : "loss";
+
+        const record = {
+            strategy,
+            label: STRATEGIES[strategy]?.label ?? strategy,
+            expiryLength,
+            direction,
+            entryPrice,
+            exitPrice: null,
+            win,
+            result,
+            pair: resolvedSymbol,
+            symbol: resolvedSymbol,
+            assetClass: assetClass ?? this.currentAssetClass,
+            confidence: Number.isFinite(confidence) ? confidence : null,
+            source: "manual",
+            resolvedAt: Date.now()
+        };
+
+        if (win === null) this.skipped.push(record);
+        else this.resolved.push(record);
+
+        this.resolved = this.resolved.slice(-MAX_RESOLVED);
+        this.skipped = this.skipped.slice(-MAX_RESOLVED);
+        this.save();
+        return true;
     }
 
     onCandle(candles) {
@@ -264,6 +298,7 @@ export class BinaryOutcomeTracker {
     reset() {
         this.pending = [];
         this.resolved = [];
+        this.skipped = [];
         this.strategyIds.forEach((id) => {
             this.lastDirection[id] = null;
         });
@@ -275,6 +310,7 @@ export class BinaryOutcomeTracker {
             window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
                 pending: this.pending,
                 resolved: this.resolved,
+                skipped: this.skipped,
                 lastDirection: this.lastDirection,
                 currentSymbol: this.currentSymbol,
                 currentAssetClass: this.currentAssetClass
@@ -291,6 +327,7 @@ export class BinaryOutcomeTracker {
             const parsed = JSON.parse(raw);
             this.pending = Array.isArray(parsed.pending) ? parsed.pending : [];
             this.resolved = Array.isArray(parsed.resolved) ? parsed.resolved : [];
+            this.skipped = Array.isArray(parsed.skipped) ? parsed.skipped : [];
             this.currentSymbol = parsed.currentSymbol ?? null;
             this.currentAssetClass = parsed.currentAssetClass ?? null;
             if (parsed.lastDirection) {

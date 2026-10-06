@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEntryFill, evaluateCandleExit } from "@analysis/executionSimulator.js";
+import { createEntryFill, evaluateCandleExit, normalizeCloseReason } from "@analysis/executionSimulator.js";
 
 const zeroCosts = {
     spreadPct: 0,
@@ -8,6 +8,13 @@ const zeroCosts = {
 };
 
 describe("execution simulator", () => {
+    it("normalizes all close-reason spellings into the shared scheduler vocabulary", () => {
+        expect(normalizeCloseReason("end_of_data")).toBe("timeout");
+        expect(normalizeCloseReason("expired")).toBe("timeout");
+        expect(normalizeCloseReason("stopLoss")).toBe("stop_loss");
+        expect(normalizeCloseReason("takeProfit")).toBe("take_profit");
+    });
+
     it("takes BUY profit at TP", () => {
         const result = evaluateCandleExit({
             position: {
@@ -154,6 +161,79 @@ describe("execution simulator", () => {
 
         expect(result.closeReason).toBe("take_profit");
         expect(result.outcome).toBe("win");
+    });
+
+    it("defaults to a candle-close interpretation for SL/TP overlap", () => {
+        const result = evaluateCandleExit({
+            position: {
+                type: "BUY",
+                entryPrice: 100,
+                stopLoss: 95,
+                takeProfit: 105
+            },
+            candle: {
+                time: 1,
+                open: 100,
+                high: 106,
+                low: 94,
+                close: 107
+            },
+            assetClass: "crypto",
+            costs: zeroCosts
+        });
+
+        expect(result.closeReason).toBe("take_profit");
+        expect(result.outcome).toBe("win");
+        expect(result.exitPrice).toBe(105);
+    });
+
+    it("uses the same close-biased interpretation for SELL overlaps", () => {
+        const result = evaluateCandleExit({
+            position: {
+                type: "SELL",
+                entryPrice: 100,
+                stopLoss: 105,
+                takeProfit: 95
+            },
+            candle: {
+                time: 1,
+                open: 100,
+                high: 106,
+                low: 93,
+                close: 92
+            },
+            assetClass: "crypto",
+            costs: zeroCosts
+        });
+
+        expect(result.closeReason).toBe("take_profit");
+        expect(result.outcome).toBe("win");
+        expect(result.exitPrice).toBe(95);
+    });
+
+    it("falls back to the close-biased interpretation when the overlap rule is unrecognized", () => {
+        const result = evaluateCandleExit({
+            position: {
+                type: "BUY",
+                entryPrice: 100,
+                stopLoss: 95,
+                takeProfit: 105
+            },
+            candle: {
+                time: 1,
+                open: 100,
+                high: 106,
+                low: 94,
+                close: 107
+            },
+            ambiguousFillRule: "legacy",
+            assetClass: "crypto",
+            costs: zeroCosts
+        });
+
+        expect(result.closeReason).toBe("take_profit");
+        expect(result.outcome).toBe("win");
+        expect(result.exitPrice).toBe(105);
     });
 
     it("times out at the maximum holding period", () => {

@@ -49,11 +49,18 @@ describe("computeExpectancy", () => {
 
 describe("computeDrawdownStats", () => {
     it("computes max drawdown correctly against a known equity curve", () => {
-        // running: 5, 3, 0, 4 | peak: 5,5,5,5 | dd: 0,2,5,1 -> maxDD = 5
         const trades = [{ pnlPercent: 5 }, { pnlPercent: -2 }, { pnlPercent: -3 }, { pnlPercent: 4 }];
         const stats = computeDrawdownStats(trades);
+        expect(stats.maxDrawdown).toBeCloseTo(4.94, 10);
+        expect(stats.totalReturn).toBeCloseTo(3.80552, 10);
+    });
+
+    it("compounds percentage returns before calculating drawdown", () => {
+        const trades = [{ pnlPercent: 10 }, { pnlPercent: -5 }];
+        const stats = computeDrawdownStats(trades);
+
+        expect(stats.totalReturn).toBeCloseTo(4.5, 10);
         expect(stats.maxDrawdown).toBeCloseTo(5, 10);
-        expect(stats.totalReturn).toBeCloseTo(4, 10);
     });
 
     it("is order-dependent - a big loss up front produces a smaller drawdown than the same loss after a run-up", () => {
@@ -66,7 +73,7 @@ describe("computeDrawdownStats", () => {
         const statsA = computeDrawdownStats(a);
         const statsD = computeDrawdownStats(d);
         expect(statsA.totalReturn).toBeCloseTo(statsD.totalReturn, 10);
-        expect(statsA.maxDrawdown).toBeCloseTo(5, 10);
+        expect(statsA.maxDrawdown).toBeCloseTo(4.94, 10);
         expect(statsD.maxDrawdown).toBeCloseTo(3, 10);
         expect(statsA.maxDrawdown).not.toBeCloseTo(statsD.maxDrawdown, 5);
     });

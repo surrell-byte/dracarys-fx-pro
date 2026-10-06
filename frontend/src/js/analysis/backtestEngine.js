@@ -2,9 +2,46 @@ import { generateSignal, STRATEGIES } from "@signals/signalEngine.js";
 import { evaluateEdge } from "@analysis/payoutMetrics.js";
 import { DEFAULT_EXPIRY_LENGTHS } from "@analysis/binaryTracker.js";
 import { calculateEMA } from "@indicators/indicators.js";
-import { applyExitCost } from "@analysis/executionCosts.js";
-import { createEntryFill, evaluateCandleExit } from "@analysis/executionSimulator.js";
+import {
+    applyExitCost,
+    applyFeeToPnl,
+    DEFAULT_EXECUTION_COSTS
+} from "@analysis/executionCosts.js";
+import {
+    createEntryFill,
+    evaluateCandleExit,
+    normalizeAmbiguousFillRule
+} from "@analysis/executionSimulator.js";
 import { computeStrategyStats } from "@analysis/performanceStats.js";
+import { passesEntryFilters } from "@risk/entryFilters.js";
+
+/*
+ * Per-strategy cost profile override.
+ *
+ * The default cost model (executionCosts.js) resolves purely off
+ * assetClass — every strategy trading BTC/USDT pays the same taker fee.
+ * That's realistic for strategies that need immediate fills, but it
+ * silently mischarges strategies whose entries/exits could reasonably
+ * be posted as resting limit orders (maker), which is a meaningfully
+ * cheaper way to trade the same signal.
+ *
+ * strategy.costProfile === "maker" opts a strategy into the cheaper
+ * cryptoMaker profile for crypto markets only; forex is untouched since
+ * DEFAULT_EXECUTION_COSTS has no forex maker tier (spreads there are
+ * already far smaller than the taker fee crypto pays). This resolver is
+ * the single place that decision is made, so backtests and any future
+ * live paper-trading integration can't drift apart on it.
+ */
+function resolveCostsForStrategy(id, assetClass, costs) {
+    // An explicit costs override always wins - we never second-guess a
+    // caller who passed a concrete cost object.
+    if (costs) return costs;
+    if (assetClass !== "crypto") return costs;
+
+    const profile = STRATEGIES[id]?.costProfile;
+    if (profile === "maker") return DEFAULT_EXECUTION_COSTS.cryptoMaker;
+    return costs;
+}
 
 /*
  * BACKTEST EXECUTION MODEL
@@ -75,15 +112,26 @@ function buildHigherTimeframeLookup(dailyCandles) {
         return () => "NEUTRAL";
     }
 
-    const closes = dailyCandles.map((c) => c.close);
+    // Daily candle timestamps represent the candle OPEN. We can't assume
+    // every daily candle spans exactly 86,400,000ms (FX daily candles shift
+    // with timezone/DST/broker session boundaries), so a daily candle only
+    // becomes usable once the NEXT daily candle has opened.
+    const sorted = dailyCandles
+        .filter((c) => Number.isFinite(c?.time) && Number.isFinite(c?.close))
+        .slice()
+        .sort((a, b) => a.time - b.time);
+
+    if (sorted.length < 200) {
+        return () => "NEUTRAL";
+    }
+
+    const closes = sorted.map((c) => Number(c.close));
     const ema50 = calculateEMA(closes, 50);
     const ema200 = calculateEMA(closes, 200);
     const offset50 = closes.length - ema50.length;
     const offset200 = closes.length - ema200.length;
 
-    // One trend value per daily candle index (aligned to `dailyCandles`),
-    // available starting the candle *after* the one that closes it.
-    const trendByIndex = dailyCandles.map((_, i) => {
+    const trendByIndex = sorted.map((_, i) => {
         const e50 = ema50[i - offset50];
         const e200 = ema200[i - offset200];
         if (!Number.isFinite(e50) || !Number.isFinite(e200)) return "NEUTRAL";
@@ -92,22 +140,170 @@ function buildHigherTimeframeLookup(dailyCandles) {
         return "NEUTRAL";
     });
 
-    const ONE_DAY_MS = 86_400_000;
-
+    // Candle i counts as "closed" once the NEXT daily open <= timestamp.
+    // We intentionally never use the still-forming current daily candle.
     return (timestamp) => {
-        // Find the last daily candle that had fully closed before `timestamp`.
-        let lo = 0, hi = dailyCandles.length - 1, result = -1;
+        if (!Number.isFinite(timestamp)) return "NEUTRAL";
+
+        let lo = 0, hi = sorted.length - 2, result = -1;
         while (lo <= hi) {
             const mid = (lo + hi) >> 1;
-            if (dailyCandles[mid].time + ONE_DAY_MS <= timestamp) {
+            const nextDailyOpen = sorted[mid + 1].time;
+            if (nextDailyOpen <= timestamp) {
                 result = mid;
                 lo = mid + 1;
             } else {
                 hi = mid - 1;
             }
         }
-        return result === -1 ? "NEUTRAL" : trendByIndex[result];
+
+        return result >= 0 ? trendByIndex[result] : "NEUTRAL";
     };
+}
+
+/**
+ * Returns the number of DAILY candles that are definitely closed
+ * before a given intraday timestamp.
+ *
+ * IMPORTANT:
+ *
+ * A daily candle's `time` represents its OPEN timestamp.
+ *
+ * Therefore:
+ *
+ *     daily candle A opens at T0
+ *     daily candle B opens at T1
+ *
+ * Candle A is only known to be closed once T1 has arrived.
+ *
+ * We therefore exclude the currently-forming daily candle.
+ *
+ * This is intentionally stricter than:
+ *
+ *     dailyCandles.length >= 200
+ *
+ * because supplied candles != usable closed candles.
+ */
+export function countClosedHigherTimeframeCandles(
+    dailyCandles,
+    timestamp
+) {
+    if (
+        !Array.isArray(dailyCandles) ||
+        !Number.isFinite(timestamp)
+    ) {
+        return 0;
+    }
+    const sorted =
+        dailyCandles
+            .filter(
+                (candle) =>
+                    Number.isFinite(candle?.time)
+            )
+            .slice()
+            .sort(
+                (a, b) =>
+                    a.time - b.time
+            );
+    if (sorted.length < 2) {
+        return 0;
+    }
+    /*
+     * A candle at index i is closed when the NEXT
+     * daily candle has opened.
+     *
+     * Therefore the maximum usable index is the
+     * final candle whose next open <= timestamp.
+     */
+    let low = 0;
+    let high = sorted.length - 2;
+    let result = -1;
+    while (low <= high) {
+        const middle =
+            Math.floor(
+                (low + high) / 2
+            );
+        const nextOpen =
+            sorted[middle + 1].time;
+        if (
+            nextOpen <= timestamp
+        ) {
+            result = middle;
+            low = middle + 1;
+        } else {
+            high = middle - 1;
+        }
+    }
+    return result >= 0
+        ? result + 1
+        : 0;
+}
+
+function updatePositionExcursion(
+    position,
+    candle
+) {
+    if (
+        !position?.side ||
+        !Number.isFinite(position.entryPrice) ||
+        !candle
+    ) {
+        return;
+    }
+
+    const high = Number(candle.high);
+    const low = Number(candle.low);
+
+    if (
+        !Number.isFinite(high) ||
+        !Number.isFinite(low)
+    ) {
+        return;
+    }
+
+    const entry = position.entryPrice;
+
+    if (position.type === "BUY") {
+        const favorable =
+            ((high - entry) / entry) * 100;
+
+        const adverse =
+            ((low - entry) / entry) * 100;
+
+        position.maxFavorablePct =
+            Math.max(
+                position.maxFavorablePct,
+                favorable
+            );
+
+        position.maxAdversePct =
+            Math.min(
+                position.maxAdversePct,
+                adverse
+            );
+
+        return;
+    }
+
+    if (position.type === "SELL") {
+        const favorable =
+            ((entry - low) / entry) * 100;
+
+        const adverse =
+            ((entry - high) / entry) * 100;
+
+        position.maxFavorablePct =
+            Math.max(
+                position.maxFavorablePct,
+                favorable
+            );
+
+        position.maxAdversePct =
+            Math.min(
+                position.maxAdversePct,
+                adverse
+            );
+    }
 }
 
 export async function runBacktest(candles, options = {}) {
@@ -132,7 +328,7 @@ export async function runBacktest(candles, options = {}) {
         assetClass = null,
         costs = null,
         maxHoldCandles = Infinity,
-        ambiguousFillRule = "conservative",
+        ambiguousFillRule = "close-biased",
         // Merged into every generateSignal() context alongside higherTrend.
         // Exists so callers (e.g. scripts/analysis/smcAblationTest.js) can
         // pass strategy-scoring options like excludeVoteModules through the
@@ -143,20 +339,26 @@ export async function runBacktest(candles, options = {}) {
         // They may be supplied to generateSignal(), but they must not
         // create scored spot or binary trades.
         scoreStartIndex = 0
+        ,entryFilters = null
     } = options;
 
     if (!Array.isArray(candles) || candles.length < 2) {
         throw new Error("Not enough candles to backtest (need at least 2).");
     }
 
+    const normalizedAmbiguousFillRule = normalizeAmbiguousFillRule(ambiguousFillRule);
+
     const getHigherTrend = buildHigherTimeframeLookup(dailyCandles);
     const usesHigherTimeframe = strategyIds.some((id) => STRATEGIES[id]?.useHigherTimeframe);
-    if (usesHigherTimeframe && !dailyCandles) {
+    if (
+        usesHigherTimeframe &&
+        (!Array.isArray(dailyCandles) || dailyCandles.length < 200)
+    ) {
         console.warn(
-            "[backtestEngine] One or more strategies use useHigherTimeframe, but no " +
-            "`dailyCandles` were passed to runBacktest(). The HTF filter will be a " +
-            "no-op (always NEUTRAL), which does not match how these strategies " +
-            "behave live - pass daily candles for the same symbol to get accurate results."
+            "[backtestEngine] One or more strategies use the higher-timeframe " +
+            "filter, but fewer than 200 daily candles are available. " +
+            "The HTF filter will remain NEUTRAL until enough historical daily " +
+            "data exists."
         );
     }
 
@@ -170,13 +372,28 @@ export async function runBacktest(candles, options = {}) {
         spotPositions[id] = {
             side: null,
             type: null,
+
+            // Raw market price before execution costs.
+            rawEntryPrice: null,
+
+            // Actual simulated filled entry price.
             entryPrice: null,
+
             stopLoss: null,
             takeProfit: null,
+
             candlesSinceOpen: 0,
+
             confidence: null,
             regime: null,
-            openedAt: null
+
+            openedAt: null,
+            openedIndex: null,
+
+            // Excursion statistics measured from the actual
+            // simulated entry price.
+            maxFavorablePct: 0,
+            maxAdversePct: 0
         };
         lastDirection[id] = null;
     });
@@ -200,7 +417,7 @@ export async function runBacktest(candles, options = {}) {
                 // spot leg so a near-the-money result isn't scored as a win
                 // purely because costs were ignored.
                 const exitPrice = assetClass
-                    ? applyExitCost(exitCandle.close, prediction.direction, assetClass, costs)
+                    ? applyExitCost(exitCandle.close, prediction.direction, assetClass, resolveCostsForStrategy(prediction.strategy, assetClass, costs))
                     : exitCandle.close;
                 const win = prediction.direction === "BUY"
                     ? exitPrice > prediction.entryPrice
@@ -231,7 +448,11 @@ export async function runBacktest(candles, options = {}) {
 
         // 3. One generateSignal() call per strategy per candle, shared by both models.
         strategyIds.forEach((id) => {
-            const signal = generateSignal(windowCandles, id, { higherTrend: getHigherTrend(candleTime), ...extraSignalContext });
+            const signal = generateSignal(windowCandles, id, {
+                higherTrend: getHigherTrend(candleTime),
+                strategyRiskOverrides: extraSignalContext.strategyRiskOverridesByStrategy?.[id],
+                ...extraSignalContext
+            });
             const position = spotPositions[id];
 
             if (!isScoredCandle) {
@@ -249,46 +470,148 @@ export async function runBacktest(candles, options = {}) {
             if (position.side) {
                 position.candlesSinceOpen += 1;
 
+                /*
+                 * Update MAE/MFE BEFORE evaluating the exit.
+                 *
+                 * This ensures the exit candle itself is included in the
+                 * excursion analysis.
+                 */
+                updatePositionExcursion(
+                    position,
+                    candles[i]
+                );
+
                 const exit = evaluateCandleExit({
                     position: {
                         type: position.type,
                         entryPrice: position.entryPrice,
+                        rawEntryPrice: position.rawEntryPrice,
                         stopLoss: position.stopLoss,
                         takeProfit: position.takeProfit
                     },
                     candle: candles[i],
                     candlesSinceOpen: position.candlesSinceOpen,
                     maxHoldCandles,
-                    ambiguousFillRule,
+                    ambiguousFillRule: normalizedAmbiguousFillRule,
                     assetClass,
-                    costs
+                    costs: resolveCostsForStrategy(id, assetClass, costs)
                 });
 
                 if (exit) {
                     spotTrades.push({
-                        strategy: id,
-                        label: STRATEGIES[id]?.label ?? id,
-                        side: position.side,
-                        entry: position.entryPrice,
-                        exit: exit.exitPrice,
-                        pnlPercent: exit.pnlPct,
-                        openedAt: position.openedAt,
-                        closedAt: candleTime,
-                        confidence: position.confidence ?? null,
-                        outcome: exit.outcome,
-                        closeReason: exit.closeReason,
-                        regime: position.regime ?? null
+                        strategy:
+                            id,
+
+                        label:
+                            STRATEGIES[id]?.label ?? id,
+
+                        side:
+                            position.side,
+
+                        /*
+                         * Raw market prices.
+                         */
+                        rawEntry:
+                            position.rawEntryPrice,
+
+                        rawExit:
+                            exit.rawExitPrice ?? null,
+
+                        /*
+                         * Execution-adjusted prices.
+                         */
+                        entry:
+                            position.entryPrice,
+
+                        exit:
+                            exit.exitPrice,
+
+                        /*
+                         * Gross performance BEFORE costs.
+                         */
+                        grossPnlPercent:
+                            Number.isFinite(exit.grossPnlPercent)
+                                ? exit.grossPnlPercent
+                                : null,
+
+                        /*
+                         * Net performance AFTER costs.
+                         */
+                        pnlPercent:
+                            exit.pnlPct,
+
+                        riskPercent:
+                            Number.isFinite(position.stopLoss) && position.entryPrice > 0
+                                ? (Math.abs(position.entryPrice - position.stopLoss) / position.entryPrice) * 100
+                                : null,
+
+                        costDragPercent:
+                            Number.isFinite(exit.costDragPercent)
+                                ? exit.costDragPercent
+                                : null,
+
+                        /*
+                         * MAE / MFE.
+                         */
+                        maePercent:
+                            position.maxAdversePct,
+
+                        mfePercent:
+                            position.maxFavorablePct,
+
+                        /*
+                         * Timing.
+                         */
+                        openedAt:
+                            position.openedAt,
+
+                        closedAt:
+                            candleTime,
+
+                        holdingCandles:
+                            position.candlesSinceOpen,
+
+                        holdingMs:
+                            Number.isFinite(position.openedAt) &&
+                            Number.isFinite(candleTime)
+                                ? candleTime - position.openedAt
+                                : null,
+
+                        /*
+                         * Signal metadata.
+                         */
+                        confidence:
+                            position.confidence ?? null,
+
+                        outcome:
+                            exit.outcome,
+
+                        closeReason:
+                            exit.closeReason,
+
+                        regime:
+                            position.regime ?? null
                     });
 
                     position.side = null;
                     position.type = null;
+
+                    position.rawEntryPrice = null;
                     position.entryPrice = null;
+
                     position.stopLoss = null;
                     position.takeProfit = null;
+
                     position.candlesSinceOpen = 0;
+
                     position.confidence = null;
                     position.regime = null;
+
                     position.openedAt = null;
+                    position.openedIndex = null;
+
+                    position.maxFavorablePct = 0;
+                    position.maxAdversePct = 0;
                 }
             }
 
@@ -298,6 +621,14 @@ export async function runBacktest(candles, options = {}) {
              * ============================================================
              */
             if (!signal.ready) {
+                return;
+            }
+
+            if (entryFilters?.enabled && !passesEntryFilters(signal, {
+                ...entryFilters,
+                allowedRegimes: entryFilters.allowedRegimesByStrategy?.[id] ?? entryFilters.allowedRegimes,
+                estimatedCostPct: entryFilters.estimatedCostPct ?? 0
+            })) {
                 return;
             }
 
@@ -317,19 +648,48 @@ export async function runBacktest(candles, options = {}) {
 
                 position.side = nextSide;
                 position.type = signal.type;
-                position.entryPrice = createEntryFill({
-                    signal: { type: signal.type, price: rawPrice },
-                    assetClass,
-                    costs
-                });
-                position.stopLoss = signal.risk?.stopLoss ?? null;
-                position.takeProfit = signal.risk?.takeProfit ?? null;
+
+                position.rawEntryPrice = rawPrice;
+
+                position.entryPrice =
+                    createEntryFill({
+                        signal: {
+                            type: signal.type,
+                            price: rawPrice
+                        },
+                        assetClass,
+                        costs: resolveCostsForStrategy(id, assetClass, costs)
+                    });
+
+                const rawStop = Number(signal.risk?.stopLoss);
+                const rawTakeProfit = Number(signal.risk?.takeProfit);
+                const rawRiskDistance = Number.isFinite(rawStop)
+                    ? Math.abs(rawPrice - rawStop)
+                    : null;
+                const rawRewardDistance = Number.isFinite(rawTakeProfit)
+                    ? Math.abs(rawTakeProfit - rawPrice)
+                    : null;
+
+                position.stopLoss = Number.isFinite(rawRiskDistance)
+                    ? (position.type === "BUY"
+                        ? position.entryPrice - rawRiskDistance
+                        : position.entryPrice + rawRiskDistance)
+                    : null;
+                position.takeProfit = Number.isFinite(rawRewardDistance)
+                    ? (position.type === "BUY"
+                        ? position.entryPrice + rawRewardDistance
+                        : position.entryPrice - rawRewardDistance)
+                    : null;
                 position.candlesSinceOpen = 0;
                 position.confidence = Number.isFinite(signal.confidence)
                     ? signal.confidence
                     : null;
                 position.regime = signal.regime?.primary ?? null;
                 position.openedAt = candleTime;
+                position.openedIndex = i;
+
+                position.maxFavorablePct = 0;
+                position.maxAdversePct = 0;
             }
 
             /*
@@ -342,7 +702,7 @@ export async function runBacktest(candles, options = {}) {
                 const binaryEntryPrice = createEntryFill({
                     signal: { type: signal.type, price: signal.price ?? windowCandles.at(-1).close },
                     assetClass,
-                    costs
+                    costs: resolveCostsForStrategy(id, assetClass, costs)
                 });
                 expiryLengths.forEach((expiryLength) => {
                     pendingBinary.push({
@@ -364,6 +724,254 @@ export async function runBacktest(candles, options = {}) {
         }
     }
 
+    let openPositionsMarkedToClose = 0;
+    let openPositionsDropped = 0;
+
+    for (const id of strategyIds) {
+        const position = spotPositions[id];
+        if (!position.side) continue;
+
+        if (!Number.isInteger(position.openedIndex) || position.openedIndex >= total - 1) {
+            openPositionsDropped += 1;
+            position.side = null;
+            position.type = null;
+
+            position.rawEntryPrice = null;
+            position.entryPrice = null;
+
+            position.stopLoss = null;
+            position.takeProfit = null;
+            position.candlesSinceOpen = 0;
+            position.confidence = null;
+            position.regime = null;
+            position.openedAt = null;
+            position.openedIndex = null;
+
+            position.maxFavorablePct = 0;
+            position.maxAdversePct = 0;
+            continue;
+        }
+
+        const finalCandle = candles.at(-1);
+
+        const finalExit =
+            evaluateCandleExit({
+                position: {
+                    type: position.type,
+                    entryPrice: position.entryPrice,
+                    rawEntryPrice: position.rawEntryPrice,
+                    stopLoss: position.stopLoss,
+                    takeProfit: position.takeProfit
+                },
+                candle: finalCandle,
+                candlesSinceOpen:
+                    position.candlesSinceOpen + 1,
+                maxHoldCandles,
+                ambiguousFillRule: normalizedAmbiguousFillRule,
+                assetClass,
+                costs: resolveCostsForStrategy(id, assetClass, costs)
+            });
+
+        updatePositionExcursion(
+            position,
+            finalCandle
+        );
+
+        const exit =
+            finalExit ??
+            (() => {
+                const rawExit =
+                    Number(finalCandle.close);
+
+                const exitPrice =
+                    applyExitCost(
+                        rawExit,
+                        position.type,
+                        assetClass,
+                        resolveCostsForStrategy(id, assetClass, costs)
+                    );
+
+                const grossPnlPercent =
+                    position.type === "BUY"
+                        ? (
+                            (rawExit -
+                                position.rawEntryPrice) /
+                            position.rawEntryPrice
+                        ) * 100
+                        : (
+                            (position.rawEntryPrice -
+                                rawExit) /
+                            position.rawEntryPrice
+                        ) * 100;
+
+                const rawNetPnlPct =
+                    position.type === "BUY"
+                        ? (
+                            (exitPrice -
+                                position.entryPrice) /
+                            position.entryPrice
+                        ) * 100
+                        : (
+                            (position.entryPrice -
+                                exitPrice) /
+                            position.entryPrice
+                        ) * 100;
+
+                const pnlPct =
+                    applyFeeToPnl(
+                        rawNetPnlPct,
+                        assetClass,
+                        resolveCostsForStrategy(id, assetClass, costs)
+                    );
+
+                const riskPercent = Number.isFinite(position.entryPrice) &&
+                    Number.isFinite(position.stopLoss) &&
+                    position.entryPrice !== 0
+                    ? Math.abs(position.entryPrice - position.stopLoss) /
+                      Math.abs(position.entryPrice) * 100
+                    : null;
+
+                const netRMultiple = Number.isFinite(pnlPct) &&
+                    Number.isFinite(riskPercent) &&
+                    riskPercent > 0
+                    ? pnlPct / riskPercent
+                    : null;
+
+                const grossRMultiple = Number.isFinite(grossPnlPercent) &&
+                    Number.isFinite(riskPercent) &&
+                    riskPercent > 0
+                    ? grossPnlPercent / riskPercent
+                    : null;
+
+                return {
+                    rawExitPrice:
+                        rawExit,
+
+                    exitPrice,
+
+                    grossPnlPercent,
+
+                    pnlPct,
+
+                    costDragPercent:
+                        pnlPct -
+                        grossPnlPercent,
+
+                    stopLoss:
+                        Number.isFinite(position.stopLoss)
+                            ? position.stopLoss
+                            : null,
+
+                    takeProfit:
+                        Number.isFinite(position.takeProfit)
+                            ? position.takeProfit
+                            : null,
+
+                    riskPercent,
+
+                    rMultiple: netRMultiple,
+
+                    grossRMultiple,
+
+                    outcome:
+                        pnlPct >= 0
+                            ? "win"
+                            : "loss",
+
+                    closeReason:
+                        "end_of_data"
+                };
+            })();
+
+        spotTrades.push({
+            strategy:
+                id,
+
+            label:
+                STRATEGIES[id]?.label ?? id,
+
+            side:
+                position.side,
+
+            rawEntry:
+                position.rawEntryPrice,
+
+            rawExit:
+                exit.rawExitPrice ?? null,
+
+            entry:
+                position.entryPrice,
+
+            exit:
+                exit.exitPrice,
+
+            grossPnlPercent:
+                Number.isFinite(exit.grossPnlPercent)
+                    ? exit.grossPnlPercent
+                    : null,
+
+            pnlPercent:
+                exit.pnlPct,
+
+            costDragPercent:
+                Number.isFinite(exit.costDragPercent)
+                    ? exit.costDragPercent
+                    : null,
+
+            maePercent:
+                position.maxAdversePct,
+
+            mfePercent:
+                position.maxFavorablePct,
+
+            openedAt:
+                position.openedAt,
+
+            closedAt:
+                finalCandle.time,
+
+            holdingCandles:
+                position.candlesSinceOpen + 1,
+
+            holdingMs:
+                Number.isFinite(position.openedAt) &&
+                Number.isFinite(finalCandle.time)
+                    ? finalCandle.time - position.openedAt
+                    : null,
+
+            confidence:
+                position.confidence ?? null,
+
+            outcome:
+                exit.outcome,
+
+            closeReason:
+                exit.closeReason,
+
+            regime:
+                position.regime ?? null
+        });
+
+        openPositionsMarkedToClose += 1;
+
+        position.side = null;
+        position.type = null;
+
+        position.rawEntryPrice = null;
+        position.entryPrice = null;
+
+        position.stopLoss = null;
+        position.takeProfit = null;
+        position.candlesSinceOpen = 0;
+        position.confidence = null;
+        position.regime = null;
+        position.openedAt = null;
+        position.openedIndex = null;
+
+        position.maxFavorablePct = 0;
+        position.maxAdversePct = 0;
+    }
+
     onProgress?.(total, total);
 
     // Any predictions still pending past the last candle simply never resolved
@@ -378,11 +986,13 @@ export async function runBacktest(candles, options = {}) {
             scoreStartIndex,
             warmupCandles: scoreStartIndex,
             strategiesRun: strategyIds.length,
-            higherTimeframeApplied: Boolean(dailyCandles),
+            higherTimeframeApplied: usesHigherTimeframe && Array.isArray(dailyCandles) && dailyCandles.length >= 200,
             executionCostsApplied: Boolean(assetClass),
             spotTrades: spotTrades.length,
             binaryTradesResolved: resolvedBinary.length,
-            binaryTradesDropped: pendingBinary.length
+            binaryTradesDropped: pendingBinary.length,
+            openPositionsMarkedToClose,
+            openPositionsDropped
         },
         spotLeaderboard: buildSpotLeaderboard(strategyIds, spotTrades),
         // Raw chronological per-strategy trade lists, exposed so the UI
@@ -419,44 +1029,248 @@ export async function runBacktest(candles, options = {}) {
 // per period, showing whether a strategy's edge holds up across different
 // market regimes or is one lucky segment away from the aggregate number.
 export async function runWalkForwardBacktest(candles, options = {}) {
-    const { folds = 4, dailyCandles = null, ...rest } = options;
+    const {
+        folds = 4,
+        dailyCandles = null,
+        warmupCandles = DEFAULT_MAX_WINDOW,
 
-    if (!Array.isArray(candles) || candles.length < folds * 2) {
-        throw new Error(`Not enough candles for ${folds} walk-forward folds.`);
+        /*
+         * Number of historical candles that belong to the supplied
+         * dataset but are NOT part of the research sample.
+         *
+         * The research runner should normally fetch:
+         *
+         *     initialContextCandles + scoringCandles
+         *
+         * so Fold 1 can also receive a full warm-up window.
+         */
+        initialContextCandles = 0,
+
+        ...rest
+    } = options;
+
+    if (!Array.isArray(candles) || candles.length < 2) {
+        throw new Error(
+            "Not enough candles for walk-forward backtest."
+        );
     }
 
-    const foldSize = Math.floor(candles.length / folds);
+    if (!Number.isInteger(folds) || folds < 2) {
+        throw new Error(
+            "folds must be an integer >= 2."
+        );
+    }
+
+    if (
+        !Number.isInteger(warmupCandles) ||
+        warmupCandles < 0
+    ) {
+        throw new Error(
+            "warmupCandles must be an integer >= 0."
+        );
+    }
+
+    if (
+        !Number.isInteger(initialContextCandles) ||
+        initialContextCandles < 0
+    ) {
+        throw new Error(
+            "initialContextCandles must be an integer >= 0."
+        );
+    }
+
+    if (initialContextCandles >= candles.length) {
+        throw new Error(
+            "initialContextCandles must be smaller than candle count."
+        );
+    }
+
+    /*
+     * ------------------------------------------------------------
+     * RESEARCH SAMPLE
+     * ------------------------------------------------------------
+     */
+    const scoringStart = initialContextCandles;
+    const scoringCandles = candles.slice(scoringStart);
+
+    if (scoringCandles.length < folds * 2) {
+        throw new Error(
+            `Not enough scoring candles for ${folds} folds. ` +
+            `Need at least ${folds * 2}, got ${scoringCandles.length}.`
+        );
+    }
+
+    const foldSize = Math.floor(scoringCandles.length / folds);
+
+    const usesHigherTimeframe =
+        Array.isArray(rest.strategyIds)
+            ? rest.strategyIds.some(
+                (id) =>
+                    STRATEGIES[id]?.useHigherTimeframe
+            )
+            : false;
+
     const results = [];
 
-    for (let f = 0; f < folds; f++) {
-        const foldStart = f * foldSize;
-        const foldEnd = f === folds - 1 ? candles.length : foldStart + foldSize;
-        const foldCandles = candles.slice(foldStart, foldEnd);
+    for (let f = 0; f < folds; f += 1) {
+        const relativeFoldStart = f * foldSize;
 
-        // dailyCandles for HTF context should only include days that had
-        // already closed before this fold's own start, mirroring what a
-        // live deployment restarted at that point in time would have seen.
-        const foldDailyCandles = dailyCandles
-            ? dailyCandles.filter((d) => d.time <= candles[foldStart].time)
-            : null;
+        const relativeFoldEnd =
+            f === folds - 1
+                ? scoringCandles.length
+                : relativeFoldStart + foldSize;
 
-        const result = await runBacktest(foldCandles, { ...rest, dailyCandles: foldDailyCandles });
+        const foldStart = scoringStart + relativeFoldStart;
+        const foldEnd = scoringStart + relativeFoldEnd;
+
+        const contextStart = Math.max(0, foldStart - warmupCandles);
+
+        const foldCandles = candles.slice(contextStart, foldEnd);
+
+        const scoreStartIndex = foldStart - contextStart;
+
+        const foldStartTime = candles[foldStart]?.time;
+
+        const foldDailyCandles =
+            Array.isArray(dailyCandles) &&
+            Number.isFinite(foldStartTime)
+                ? dailyCandles.filter(
+                    (dailyCandle) =>
+                        Number.isFinite(
+                            dailyCandle?.time
+                        ) &&
+                        dailyCandle.time <=
+                            foldStartTime
+                )
+                : null;
+        const closedHigherTimeframeCandles =
+            countClosedHigherTimeframeCandles(
+                foldDailyCandles,
+                foldStartTime
+            );
+        const higherTimeframeReady =
+            usesHigherTimeframe &&
+            closedHigherTimeframeCandles >= 200;
+
+        const result = await runBacktest(foldCandles, { ...rest, dailyCandles: foldDailyCandles, scoreStartIndex });
 
         results.push({
             fold: f + 1,
-            from: foldCandles[0].time,
-            to: foldCandles.at(-1).time,
-            candleCount: foldCandles.length,
+
+            from: foldCandles[scoreStartIndex]?.time ?? foldCandles[0]?.time,
+
+            to: foldCandles.at(-1)?.time ?? null,
+
+            candleCount: foldEnd - foldStart,
+
+            contextCandles: scoreStartIndex,
+
+            scoreStartIndex,
+
+            foldStartIndex: foldStart,
+            foldEndIndex: foldEnd,
+
+            initialContextCandles,
+
+            warmupRequested: warmupCandles,
+
+            fullWarmupAvailable: scoreStartIndex >= warmupCandles,
+
+            /*
+             * ------------------------------------------------------------
+             * HIGHER-TIMEFRAME RESEARCH AUDIT
+             * ------------------------------------------------------------
+             *
+             * Keep these fields separate:
+             *
+             * higherTimeframeCandles
+             *     = candles supplied to the fold
+             *
+             * closedHigherTimeframeCandles
+             *     = candles definitely closed before fold start
+             *
+             * higherTimeframeReady
+             *     = enough CLOSED candles exist to initialise EMA200
+             *
+             * higherTimeframeApplied
+             *     = this fold actually had a usable HTF filter
+             */
+            higherTimeframeCandles: foldDailyCandles ? foldDailyCandles.length : 0,
+            closedHigherTimeframeCandles,
+            higherTimeframeAvailable: closedHigherTimeframeCandles > 0,
+            higherTimeframeReady,
+            higherTimeframeApplied:
+                usesHigherTimeframe &&
+                higherTimeframeReady,
+
             ...result
         });
     }
 
     return {
         folds: results,
+
         summary: {
+            method: "rolling-origin-out-of-sample-evaluation",
+
+            optimizationPerformed: false,
+
             foldCount: folds,
-            totalCandles: candles.length,
-            note: "Each fold is an independent, non-overlapping, chronological out-of-sample slice. Compare spotLeaderboard.totalPnl and binaryStats.edge across folds - a strategy whose numbers hold up across most folds is more trustworthy than one whose aggregate is dominated by a single fold."
+
+            totalInputCandles: candles.length,
+
+            initialContextCandles,
+
+            totalScoredCandles: scoringCandles.length,
+
+            warmupCandles,
+
+            allFoldsHaveFullWarmup: results.every((fold) => fold.fullWarmupAvailable),
+
+            allFoldsHaveHTFContext:
+                !usesHigherTimeframe ||
+                results.every(
+                    (fold) =>
+                        fold.higherTimeframeReady === true
+                ),
+            allFoldsHaveClosedHTFContext:
+                !usesHigherTimeframe ||
+                results.every(
+                    (fold) =>
+                        fold.closedHigherTimeframeCandles >= 200
+                ),
+            htfAudit:
+                usesHigherTimeframe
+                    ? {
+                        requiredClosedCandles: 200,
+                        allFoldsHaveClosedContext:
+                            results.every(
+                                (fold) =>
+                                    fold.closedHigherTimeframeCandles >= 200
+                            ),
+                        minimumClosedCandles:
+                            Math.min(
+                                ...results.map(
+                                    (fold) =>
+                                        fold.closedHigherTimeframeCandles
+                                )
+                            ),
+                        maximumClosedCandles:
+                            Math.max(
+                                ...results.map(
+                                    (fold) =>
+                                        fold.closedHigherTimeframeCandles
+                                )
+                            )
+                    }
+                    : {
+                        requiredClosedCandles: 200,
+                        allFoldsHaveClosedContext: true,
+                        minimumClosedCandles: 0,
+                        maximumClosedCandles: 0
+                    },
+
+            note: "Each fold is an independent chronological out-of-sample evaluation. Parameters are not optimised inside this run."
         }
     };
 }

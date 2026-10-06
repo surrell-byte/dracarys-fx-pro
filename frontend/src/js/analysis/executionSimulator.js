@@ -28,18 +28,98 @@ function calculateRawPnlPct(type, entryPrice, exitPrice) {
     throw new Error(`Unsupported position type: ${type}`);
 }
 
-function finaliseExit({ position, rawExitPrice, closeReason, candleTime, assetClass, costs }) {
-    const { type, entryPrice } = position;
-    const exitPrice = applyExitCost(rawExitPrice, type, assetClass, costs);
-    const rawPnlPct = calculateRawPnlPct(type, entryPrice, exitPrice);
-    const pnlPct = applyFeeToPnl(rawPnlPct, assetClass, costs);
+export function normalizeAmbiguousFillRule(rule = "close-biased") {
+    return rule === "optimistic" || rule === "conservative" || rule === "close-biased"
+        ? rule
+        : "close-biased";
+}
+
+export function normalizeCloseReason(reason = "unknown") {
+    const normalized = String(reason ?? "unknown").trim().toLowerCase();
+    if (["end_of_data", "end of data", "expired", "timeout", "time_out"].includes(normalized)) {
+        return "timeout";
+    }
+    if (["stoploss", "stop_loss", "sl", "stopped", "stopLoss"].includes(normalized)) {
+        return "stop_loss";
+    }
+    if (["takeprofit", "take_profit", "tp", "target", "takeProfit"].includes(normalized)) {
+        return "take_profit";
+    }
+    return normalized || "unknown";
+}
+
+function finaliseExit({
+    position,
+    rawExitPrice,
+    closeReason,
+    candleTime,
+    assetClass,
+    costs
+}) {
+    const {
+        type,
+        entryPrice,
+        rawEntryPrice = entryPrice
+    } = position;
+
+    const exitPrice =
+        applyExitCost(
+            rawExitPrice,
+            type,
+            assetClass,
+            costs
+        );
+
+    /*
+     * GROSS:
+     *
+     * Uses the actual raw market entry and raw market exit.
+     * No spread, slippage or fees.
+     */
+    const grossPnlPct =
+        calculateRawPnlPct(
+            type,
+            rawEntryPrice,
+            rawExitPrice
+        );
+
+    /*
+     * NET:
+     *
+     * Uses the execution-adjusted entry/exit and fees.
+     */
+    const rawNetPnlPct =
+        calculateRawPnlPct(
+            type,
+            entryPrice,
+            exitPrice
+        );
+
+    const pnlPct =
+        applyFeeToPnl(
+            rawNetPnlPct,
+            assetClass,
+            costs
+        );
 
     return {
         outcome: pnlPct >= 0 ? "win" : "loss",
-        closeReason,
+
+        closeReason: normalizeCloseReason(closeReason),
+
+        rawExitPrice,
+
         exitPrice,
+
+        grossPnlPercent: grossPnlPct,
+
         pnlPct,
-        timestamp: candleTime ?? null
+
+        costDragPercent:
+            pnlPct - grossPnlPct,
+
+        timestamp:
+            candleTime ?? null
     };
 }
 
@@ -59,10 +139,12 @@ export function evaluateCandleExit({
     candle,
     candlesSinceOpen = 0,
     maxHoldCandles = Infinity,
-    ambiguousFillRule = "conservative",
+    ambiguousFillRule = "close-biased",
     assetClass = "crypto",
     costs = null
 }) {
+    const resolvedAmbiguousFillRule = normalizeAmbiguousFillRule(ambiguousFillRule);
+
     if (!position || !candle) return null;
     validateFinite("position.entryPrice", position.entryPrice);
     validateFinite("candle.high", Number(candle.high));
@@ -92,11 +174,26 @@ export function evaluateCandleExit({
         : hasTakeProfit && low <= takeProfit;
 
     if (stopHit && targetHit) {
-        if (ambiguousFillRule === "optimistic") {
+        if (resolvedAmbiguousFillRule === "optimistic") {
             return finaliseExit({
                 position,
                 rawExitPrice: takeProfit,
                 closeReason: "take_profit",
+                candleTime: candle.time,
+                assetClass,
+                costs
+            });
+        }
+
+        if (resolvedAmbiguousFillRule === "close-biased") {
+            const closesOnTakeProfitSide = type === "BUY"
+                ? close >= takeProfit
+                : close <= takeProfit;
+
+            return finaliseExit({
+                position,
+                rawExitPrice: closesOnTakeProfitSide ? takeProfit : stopLoss,
+                closeReason: closesOnTakeProfitSide ? "take_profit" : "stop_loss",
                 candleTime: candle.time,
                 assetClass,
                 costs

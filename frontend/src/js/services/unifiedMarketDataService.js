@@ -7,12 +7,14 @@
 // the asset class changes.
 import { MarketDataService } from "@services/marketDataService.js";
 import { ForexDataService } from "@services/forexDataService.js";
+import { DerivDataService } from "@services/derivDataService.js";
 
 export class UnifiedMarketDataService {
     constructor(symbol = "btcusdt", interval = "1m", limit = 200, assetClass = "crypto") {
         this.assetClass = assetClass;
         this.crypto = new MarketDataService(symbol, interval, limit);
         this.forex = new ForexDataService(symbol, interval, limit);
+        this.deriv = new DerivDataService(symbol, interval, limit);
 
         this.candleCallbacks = [];
         this.tickCallbacks = [];
@@ -20,22 +22,23 @@ export class UnifiedMarketDataService {
 
         this.wire(this.crypto, "crypto");
         this.wire(this.forex, "forex");
+        this.wire(this.deriv, "deriv");
     }
 
     wire(provider, assetClass) {
         provider.onCandle(candle => {
-            if (this.assetClass === assetClass) this.candleCallbacks.forEach(cb => cb(candle));
+            if (this.assetClass === assetClass || (assetClass === "deriv" && this.assetClass === "forex")) this.candleCallbacks.forEach(cb => cb(candle));
         });
         provider.onTick(candle => {
-            if (this.assetClass === assetClass) this.tickCallbacks.forEach(cb => cb(candle));
+            if (this.assetClass === assetClass || (assetClass === "deriv" && this.assetClass === "forex")) this.tickCallbacks.forEach(cb => cb(candle));
         });
         provider.onStatus(status => {
-            if (this.assetClass === assetClass) this.statusCallbacks.forEach(cb => cb(status));
+            if (this.assetClass === assetClass || (assetClass === "deriv" && this.assetClass === "forex")) this.statusCallbacks.forEach(cb => cb(status));
         });
     }
 
     active() {
-        return this.assetClass === "forex" ? this.forex : this.crypto;
+        return this.assetClass === "forex" ? this.deriv : this.crypto;
     }
 
     // assetClass is optional on every method below so existing crypto-only
@@ -47,11 +50,11 @@ export class UnifiedMarketDataService {
     }
 
     getCandles(symbol, interval, limit, assetClass = this.assetClass) {
-        return (assetClass === "forex" ? this.forex : this.crypto).getCandles(symbol, interval, limit);
+        return (assetClass === "forex" ? this.deriv : this.crypto).getCandles(symbol, interval, limit);
     }
 
     getHistoricalCandles(symbol, interval, options, assetClass = this.assetClass) {
-        return (assetClass === "forex" ? this.forex : this.crypto).getHistoricalCandles(symbol, interval, options);
+        return (assetClass === "forex" ? this.deriv : this.crypto).getHistoricalCandles(symbol, interval, options);
     }
 
     connect() {
@@ -65,6 +68,7 @@ export class UnifiedMarketDataService {
     disconnect() {
         this.crypto.disconnect();
         this.forex.disconnect();
+        this.deriv.disconnect();
     }
 
     onCandle(callback) {

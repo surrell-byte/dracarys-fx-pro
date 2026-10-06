@@ -226,5 +226,41 @@ export const STRATEGIES = {
             levels: 0,
             adxBoost: 0
         }
+    },
+
+    derivBinaryMomentum: {
+        label: "Deriv Binary Momentum",
+        threshold: 65,
+        custom: "derivBinaryMomentum",
+        weights: {
+            trend: 0,
+            momentum: 0,
+            rsi: 0,
+            bands: 0,
+            pattern: 0,
+            levels: 0,
+            adxBoost: 0
+        }
+    },
+
+    sessionMeanReversion: {
+        label: "Session Mean Reversion (Experimental)",
+        threshold: 65,
+        custom: "sessionMeanReversion",
+        weights: { trend: 0, momentum: 0, rsi: 0, bands: 0, pattern: 0, levels: 0, adxBoost: 0 }
+    },
+
+    sessionMomentum: {
+        label: "Liquid Session Momentum (Experimental)",
+        threshold: 65,
+        custom: "sessionMomentum",
+        weights: { trend: 0, momentum: 0, rsi: 0, bands: 0, pattern: 0, levels: 0, adxBoost: 0 }
+    },
+
+    metaLabelFilter: {
+        label: "Meta-Label Filter (Experimental)",
+        threshold: 70,
+        custom: "metaLabelFilter",
+        weights: { trend: 0, momentum: 0, rsi: 0, bands: 0, pattern: 0, levels: 0, adxBoost: 0 }
     }
 };

@@ -127,6 +127,10 @@ const elements = {
     binaryStatsBody: document.querySelector("#binaryStatsBody"),
     calibrationBody: document.querySelector("#calibrationBody"),
     payoutRatioInput: document.querySelector("#payoutRatioInput"),
+    manualExpiry: document.querySelector("#manualExpiry"),
+    manualWinBtn: document.querySelector("#manualWinBtn"),
+    manualLossBtn: document.querySelector("#manualLossBtn"),
+    manualSkipBtn: document.querySelector("#manualSkipBtn"),
     testerReset: document.querySelector("#testerReset"),
     tradeNowBtn: document.querySelector("#tradeNowBtn"),
     closePaperBtn: document.querySelector("#closePaperBtn"),
@@ -169,6 +173,7 @@ const market = new UnifiedMarketDataService(state.symbol, state.interval, state.
 const ctx = elements.chart.getContext("2d");
 const tester = new StrategyTester(Object.keys(STRATEGIES));
 const binaryTracker = new BinaryOutcomeTracker(Object.keys(STRATEGIES));
+let lastActionableSignal = null;
 
 market.onStatus((status) => {
     elements.status.textContent = status;
@@ -186,6 +191,9 @@ market.onTick((candle) => {
 market.onCandle((candle) => {
     upsertCandle(candle);
     const signal = generateSignal(state.candles, state.strategy, signalContext());
+    lastActionableSignal = signal.ready && ["BUY", "SELL"].includes(signal.type)
+        ? { signal, strategy: state.strategy }
+        : null;
     renderSignal(signal);
     drawChart();
     recordSignal(signal);
@@ -195,6 +203,35 @@ market.onCandle((candle) => {
     binaryTracker.onCandle(state.candles);
     renderBinaryStats();
 });
+
+function recordManualBinaryOutcome(win) {
+    if (!lastActionableSignal) {
+        setExecutionStatus("No actionable signal to record");
+        return;
+    }
+
+    const signal = lastActionableSignal.signal;
+    const strategy = lastActionableSignal.strategy;
+    const expiryLength = Number(elements.manualExpiry?.value);
+    const recorded = binaryTracker.recordManualOutcome({
+        strategy,
+        direction: signal.type,
+        entryPrice: signal.price,
+        expiryLength,
+        symbol: state.apiSymbol,
+        assetClass: state.assetClass,
+        confidence: signal.confidence,
+        win
+    });
+
+    const outcome = win === null ? "skip" : win ? "win" : "loss";
+    setExecutionStatus(recorded ? `Manual ${outcome} recorded` : "Unable to record result");
+    renderBinaryStats();
+}
+
+elements.manualWinBtn?.addEventListener("click", () => recordManualBinaryOutcome(true));
+elements.manualLossBtn?.addEventListener("click", () => recordManualBinaryOutcome(false));
+elements.manualSkipBtn?.addEventListener("click", () => recordManualBinaryOutcome(null));
 
 function signalContext() {
     return { higherTrend: state.higherTrend.trend };
@@ -211,6 +248,9 @@ elements.pairSelect.addEventListener("change", () => {
 elements.strategySelect.addEventListener("change", () => {
     state.strategy = elements.strategySelect.value;
     const signal = generateSignal(state.candles, state.strategy, signalContext());
+    lastActionableSignal = signal.ready && ["BUY", "SELL"].includes(signal.type)
+        ? { signal, strategy: state.strategy }
+        : null;
     renderSignal(signal);
     recordSignal(signal);
     setExecutionStatus(`${STRATEGIES[state.strategy]?.label ?? "Strategy"} active`);
@@ -299,6 +339,7 @@ async function init() {
 
 async function loadSelectedMarket() {
     elements.autoTrade.checked = false;
+    lastActionableSignal = null;
     updateMarketFromSelection();
     resetPaperAccount();
     await loadMarket();
@@ -718,6 +759,7 @@ async function sendTrade(signal, settings, quantity = settings.quantity) {
         body: JSON.stringify({
             signal,
             symbol: state.apiSymbol,
+            assetClass: state.assetClass,
             quantity,
             mode: settings.mode,
             stopLoss: signal.risk?.stopLoss ?? null,

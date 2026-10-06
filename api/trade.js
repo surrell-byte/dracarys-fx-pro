@@ -58,6 +58,12 @@ export default async function handler(request, response) {
   if (typeof body.symbol !== "string" || !/^[A-Z0-9]+\/[A-Z0-9]+$/i.test(body.symbol)) {
     validationErrors.push("symbol must look like BASE/QUOTE (e.g. BTC/USDT)");
   }
+  if (body.assetClass !== "crypto" && body.assetClass !== "forex") {
+    validationErrors.push("assetClass must be crypto or forex");
+  }
+  if (body.mode === "live" && (body.assetClass !== "crypto" || !/\/USDT$/i.test(body.symbol ?? ""))) {
+    validationErrors.push("live Binance execution currently supports crypto USDT pairs only");
+  }
   if (typeof body.quantity !== "number" || !(body.quantity > 0)) {
     validationErrors.push("quantity must be a positive number");
   }

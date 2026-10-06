@@ -5,74 +5,109 @@ import {
     buildAssetScorecard
 } from "@analysis/scorecard.js";
 
-const ROWS = [
-    { symbol: "BTC/USDT", regime: "TREND", strategy: "aiConfidence", trades: 10, winRate: 60, expectancy: 0.5, profitFactor: 1.4, sharpe: 0.9 },
-    { symbol: "BTC/USDT", regime: "RANGE", strategy: "aiConfidence", trades: 8, winRate: 40, expectancy: -0.2, profitFactor: 0.8, sharpe: -0.3 },
-    { symbol: "ETH/USDT", regime: "TREND", strategy: "aiConfidence", trades: 12, winRate: 55, expectancy: 0.3, profitFactor: 1.2, sharpe: 0.6 },
-    { symbol: "BTC/USDT", regime: "TREND", strategy: "trendFollow", trades: 20, winRate: 50, expectancy: 0.1, profitFactor: 1.05, sharpe: 0.2 }
-];
-
 describe("buildStrategyScorecard", () => {
-    it("groups rows by strategy and computes averages", () => {
-        const scorecard = buildStrategyScorecard(ROWS);
-        const aiConfidence = scorecard.find((r) => r.strategy === "aiConfidence");
-        expect(aiConfidence.samples).toBe(3);
-        expect(aiConfidence.totalTrades).toBe(30);
-        expect(aiConfidence.avgExpectancy).toBeCloseTo((0.5 - 0.2 + 0.3) / 3, 5);
-        const trendFollow = scorecard.find((r) => r.strategy === "trendFollow");
-        expect(trendFollow.samples).toBe(1);
-    });
+    it("pools trades across folds", () => {
+        const report = {
+            results: [{
+                symbol: "BTC/USDT", timeframe: "5m",
+                rows: [
+                    { strategy: "trend", fold: 1, trades: 2, totalPnl: 2 },
+                    { strategy: "trend", fold: 2, trades: 10, totalPnl: -1 }
+                ],
+                trades: [
+                    { strategy: "trend", label: "Trend", pnlPercent: 1, closedAt: 1, regime: "TRENDING" },
+                    { strategy: "trend", label: "Trend", pnlPercent: 1, closedAt: 2, regime: "TRENDING" },
+                    ...Array.from({ length: 10 }, (_, index) => ({
+                        strategy: "trend", label: "Trend", pnlPercent: -0.1, closedAt: index + 3, regime: "RANGING"
+                    }))
+                ]
+            }]
+        };
 
-    it("sorts by avg expectancy, best first", () => {
-        const scorecard = buildStrategyScorecard(ROWS);
-        expect(scorecard[0].strategy).toBe("aiConfidence");
-    });
+        const scorecard = buildStrategyScorecard(report);
+        const trend = scorecard.find((row) => row.strategy === "trend");
 
-    it("computes expectancy consistency as % of profitable folds", () => {
-        const scorecard = buildStrategyScorecard(ROWS);
-        const aiConfidence = scorecard.find((r) => r.strategy === "aiConfidence");
-        expect(aiConfidence.expectancyConsistency).toBeCloseTo((2 / 3) * 100, 5);
-        expect(aiConfidence.profitableFolds).toBe(2);
-    });
-
-    it("handles empty input without throwing", () => {
-        expect(buildStrategyScorecard([])).toEqual([]);
-    });
-
-    it("ignores null/undefined rows", () => {
-        const scorecard = buildStrategyScorecard([...ROWS, null, undefined]);
-        expect(scorecard.reduce((sum, r) => sum + r.samples, 0)).toBe(ROWS.length);
+        expect(trend.trades).toBe(12);
+        expect(trend.totalPnl).toBeCloseTo(1, 6);
     });
 });
 
 describe("buildRegimeScorecard", () => {
-    it("groups rows by regime", () => {
-        const scorecard = buildRegimeScorecard(ROWS);
-        const trend = scorecard.find((r) => r.regime === "TREND");
-        const range = scorecard.find((r) => r.regime === "RANGE");
-        expect(trend.samples).toBe(3);
-        expect(range.samples).toBe(1);
-    });
-
     it("falls back to UNKNOWN when regime is missing", () => {
-        const scorecard = buildRegimeScorecard([{ strategy: "x", expectancy: 0.1 }]);
+        const scorecard = buildRegimeScorecard({
+            results: [{
+                trades: [{ strategy: "x", pnlPercent: 0.1, closedAt: 1 }]
+            }]
+        });
         expect(scorecard[0].regime).toBe("UNKNOWN");
     });
 });
 
 describe("buildAssetScorecard", () => {
-    it("groups rows by symbol", () => {
-        const scorecard = buildAssetScorecard(ROWS);
-        const btc = scorecard.find((r) => r.symbol === "BTC/USDT");
-        const eth = scorecard.find((r) => r.symbol === "ETH/USDT");
-        expect(btc.samples).toBe(3);
-        expect(eth.samples).toBe(1);
+    it("groups pooled trades by market", () => {
+        const report = {
+            results: [{
+                symbol: "BTC/USDT",
+                trades: [
+                    { strategy: "trend", pnlPercent: 1, closedAt: 1 },
+                    { strategy: "trend", pnlPercent: -0.5, closedAt: 2 }
+                ]
+            }]
+        };
+        const scorecard = buildAssetScorecard(report);
+        expect(scorecard[0].symbol).toBe("BTC/USDT");
+        expect(scorecard[0].trades).toBe(2);
     });
+});
 
-    it("sorts by avg expectancy, best first", () => {
-        const scorecard = buildAssetScorecard(ROWS);
-        expect(scorecard[0].avgExpectancy).toBeGreaterThanOrEqual(
-            scorecard[scorecard.length - 1].avgExpectancy
-        );
+describe("buildStrategyScorecard (pooled)", () => {
+    it("pools trades across folds", () => {
+        const report = {
+            results: [{
+                symbol: "BTC/USDT", timeframe: "5m",
+                rows: [
+                    { strategy: "trend", fold: 1, trades: 2, totalPnl: 2 },
+                    { strategy: "trend", fold: 2, trades: 10, totalPnl: -1 }
+                ],
+                trades: [
+                    { strategy: "trend", label: "Trend", pnlPercent: 1, closedAt: 1, regime: "TRENDING" },
+                    { strategy: "trend", label: "Trend", pnlPercent: 1, closedAt: 2, regime: "TRENDING" },
+                    ...Array.from({ length: 10 }, (_, index) => ({
+                        strategy: "trend", label: "Trend", pnlPercent: -0.1, closedAt: index + 3, regime: "RANGING"
+                    }))
+                ]
+            }]
+        };
+
+        const scorecard = buildStrategyScorecard(report);
+        const trend = scorecard.find((row) => row.strategy === "trend");
+
+        expect(trend.trades).toBe(12);
+        expect(trend.totalPnl).toBeCloseTo(1, 6);
+    });
+});
+
+describe("strategy scorecard verdicts", () => {
+    it("does not classify a negative strategy as promising", () => {
+        function makeTrade(pnl, { strategy = "test", symbol = "BTC/USDT", timeframe = "5m", fold = 1 } = {}) {
+            return {
+                strategy,
+                symbol,
+                timeframe,
+                fold,
+                pnlPercent: pnl,
+                grossPnlPercent: pnl,
+                costDragPercent: 0,
+                closedAt: fold * 1000
+            };
+        }
+
+        const trades = [];
+        for (let i = 0; i < 50; i += 1) {
+            trades.push(makeTrade(-0.5, { fold: (i % 5) + 1 }));
+        }
+
+        const [row] = buildStrategyScorecard({ results: [{ symbol: "BTC/USDT", timeframe: "5m", trades }] });
+        expect(row.verdict).not.toBe("PROMISING");
     });
 });

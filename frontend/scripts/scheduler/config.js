@@ -37,6 +37,26 @@ export const config = {
     // Empty array = run all of them.
     strategies: [],
 
+    // Entry policy used by the scheduler. These filters reduce low-quality
+    // signal volume; they do not claim to create a profitable edge.
+    entryFilters: {
+        enabled: false,
+        minConfidence: 70,
+        minQuality: "Medium",
+        minTargetToCostRatio: 2,
+        allowedRegimesByStrategy: {
+            trend: ["TRENDING", "BREAKOUT"],
+            trendFollowing2: ["TRENDING", "BREAKOUT"],
+            ema165SarRoc: ["TRENDING", "BREAKOUT"],
+            emaPullbackAdx: ["TRENDING"],
+            breakout: ["BREAKOUT", "TRENDING"],
+            breakout2: ["BREAKOUT", "TRENDING"],
+            meanReversion: ["RANGING"],
+            meanReversion2: ["RANGING"],
+            range: ["RANGING"]
+        }
+    },
+
     // How often to re-scan for new signals and check open ones, in ms.
     // 60_000 = once a minute. Binance's public REST endpoint doesn't
     // require a key, but don't go far below this without checking their

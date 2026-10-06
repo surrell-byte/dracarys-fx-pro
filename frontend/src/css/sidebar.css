@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Sidebar - Playful Blue
-   - Blue background (#2563EB)
+   Sidebar - Premium Dark Terminal
+   - Dark background (#0d0f12)
    - Floating feel with rounded corners and shadow
    - 260px width
    - Profile card at bottom
@@ -15,9 +15,10 @@
     flex-direction: column;
     gap: var(--sp-4);
     padding: var(--sp-5) var(--sp-3);
-    background: var(--primary);
+    background: var(--sidebar);
+    border: 1px solid var(--line);
     border-radius: var(--radius-sidebar);
-    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow);
     overflow-y: auto;
     z-index: 20;
 }
@@ -28,15 +29,15 @@
     gap: var(--sp-1);
     padding: var(--sp-2) var(--sp-3) var(--sp-4);
     font-family: var(--font-display);
-    font-weight: 700;
+    font-weight: 800;
     font-size: 1.1rem;
     letter-spacing: 0.04em;
-    color: #ffffff;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text);
+    border-bottom: 1px solid var(--line);
 }
 
 .logo span {
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--primary);
 }
 
 .menu {
@@ -53,16 +54,28 @@
     width: 100%;
     min-height: 52px;
     padding: 0 var(--sp-3);
-    border: none;
+    border: 1px solid transparent;
     border-radius: var(--radius-soft);
     background: transparent;
-    color: rgba(255, 255, 255, 0.75);
+    color: var(--text-secondary);
     font-family: var(--font-body);
     font-size: var(--text-body);
     font-weight: 500;
     text-align: left;
     cursor: pointer;
-    transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+    transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.menu button:hover {
+    background: var(--panel-hover);
+    color: var(--text);
+}
+
+.menu button.active {
+    background: var(--primary);
+    color: var(--bg);
+    border-color: var(--line-strong);
+    font-weight: 650;
 }
 
 .menu-icon {
@@ -73,7 +86,8 @@
     height: 32px;
     border-radius: var(--radius-soft);
     font-size: 1rem;
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--panel-soft);
+    color: currentColor;
     flex-shrink: 0;
     transition: background var(--transition-fast), transform var(--transition-fast);
 }

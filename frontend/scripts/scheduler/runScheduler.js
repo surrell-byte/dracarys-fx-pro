@@ -21,6 +21,7 @@ import { fetchCandles } from "./candles.js";
 import { shouldOpen, checkExit } from "./virtualTrades.js";
 import { createEntryFill } from "@analysis/executionSimulator.js";
 import { evaluatePortfolioRisk } from "./portfolioRisk.js";
+import { evaluateEntryFilters } from "@risk/entryFilters.js";
 import * as db from "./db.js";
 import { generateReport } from "./generateReport.js";
 import { sendDiscordMessage, meetsNotifyThreshold, formatSignalMessage, formatDailySummaryMessage } from "./notify.js";
@@ -113,6 +114,21 @@ export async function scanSymbol({ symbol, assetClass }) {
     for (const strategyId of strategyIds) {
         const signal = generateSignal(closedCandles, strategyId);
         if (!shouldOpen(signal)) continue;
+        const costs = config.executionCosts?.[assetClass];
+        const estimatedCostPct = costs
+            ? (costs.spreadPct + (2 * costs.slippagePct) + costs.feePct) * 100
+            : 0;
+        if (config.entryFilters?.enabled) {
+            const entryCheck = evaluateEntryFilters(signal, {
+                ...config.entryFilters,
+                allowedRegimes: config.entryFilters?.allowedRegimesByStrategy?.[strategyId],
+                estimatedCostPct
+            });
+            if (!entryCheck.allowed) {
+                console.log(`[${symbol}] filtered ${signal.strategy}: ${entryCheck.reasons.join("; ")}`);
+                continue;
+            }
+        }
         if (db.getOpenSignals(symbol, strategyId).length > 0) continue;
 
         // Portfolio-level gate: even though this symbol/strategy pair is

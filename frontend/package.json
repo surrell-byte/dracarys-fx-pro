@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "vercel:dev": "vercel dev --listen 8002 -y",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
@@ -17,7 +18,11 @@
     "report": "vite-node -c vite.config.js scripts/scheduler/cli-report.js",
     "reports-server": "vite-node -c vite.config.js scripts/scheduler/reportServer.js",
     "walk-forward": "vite-node -c vite.config.js scripts/analysis/multiMarketWalkForward.js",
-    "scorecards": "vite-node -c vite.config.js scripts/analysis/buildScorecards.js"
+    "deriv-binary": "vite-node -c vite.config.js scripts/analysis/derivBinaryWalkForward.js",
+    "scorecards": "vite-node -c vite.config.js scripts/analysis/buildScorecards.js",
+    "research-audit": "vite-node -c vite.config.js scripts/analysis/buildScorecards.js",
+    "strategy-diagnostics": "vite-node -c vite.config.js scripts/analysis/buildStrategyDiagnostics.js",
+    "live-readiness": "node scripts/analysis/liveReadiness.js"
   },
   "devDependencies": {
     "jsdom": "^30.0.1",
@@ -29,6 +34,9 @@
     "better-sqlite3": "^11.3.0",
     "ccxt": "^4.5.58",
     "dotenv": "^17.4.2",
-    "node-cron": "^3.0.3"
+    "marked": "^18.0.9",
+    "node-cron": "^3.0.3",
+    "puppeteer": "^24.43.1",
+    "ws": "^8.21.3"
   }
 }

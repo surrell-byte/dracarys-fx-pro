@@ -100,6 +100,12 @@ function validateTradeRequest(body) {
     if (typeof body.symbol !== "string" || !/^[A-Z0-9]+\/[A-Z0-9]+$/.test(body.symbol)) {
         errors.push("symbol must look like BASE/QUOTE, e.g. BTC/USDT");
     }
+    if (body.assetClass !== "crypto" && body.assetClass !== "forex") {
+        errors.push("assetClass must be crypto or forex");
+    }
+    if (body.mode === "live" && (body.assetClass !== "crypto" || !/\/USDT$/.test(body.symbol ?? ""))) {
+        errors.push("live Binance execution currently supports crypto USDT pairs only");
+    }
     if (typeof body.quantity !== "number" || !(body.quantity > 0)) {
         errors.push("quantity must be a positive number");
     } else if (body.quantity > MAX_ORDER_QUANTITY) {
@@ -107,6 +113,9 @@ function validateTradeRequest(body) {
     }
     if (body.mode !== undefined && !validModes.has(body.mode)) {
         errors.push("mode must be dry-run or live");
+    }
+    if (body.mode === "live" && (typeof body.stopLoss !== "number" || typeof body.takeProfit !== "number")) {
+        errors.push("live mode requires numeric stopLoss and takeProfit");
     }
     for (const field of ["stopLoss", "takeProfit"]) {
         if (body[field] !== undefined && body[field] !== null && typeof body[field] !== "number") {
@@ -134,6 +143,7 @@ app.post("/trade", async (req, res) => {
         const result = await placeOrder({
             signal: req.body.signal,
             symbol: req.body.symbol,
+            assetClass: req.body.assetClass,
             quantity: req.body.quantity,
             mode: req.body.mode,
             stopLoss: req.body.stopLoss ?? null,

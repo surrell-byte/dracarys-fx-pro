@@ -16,7 +16,13 @@ vi.mock("ccxt", () => ({
     default: { binance: binanceCtorMock }
 }));
 
-const { fetchCandles } = await import("../scripts/scheduler/candles.js");
+const {
+    fetchCandles,
+    fetchCandlesWithMetadata,
+    inspectCandleSeries,
+    stitchCandlePages
+} = await import("../scripts/scheduler/candles.js");
+const { ForexDataService } = await import("../src/js/services/forexDataService.js");
 
 const ORIGINAL_API_KEY = process.env.TWELVEDATA_API_KEY;
 
@@ -44,7 +50,11 @@ describe("fetchCandles - crypto (Binance via ccxt)", () => {
             limit: 2
         });
 
-        expect(fetchOHLCVMock).toHaveBeenCalledWith("BTC/USDT", "1m", undefined, 2);
+        const [requestedSymbol, requestedTimeframe, since, requestedLimit] = fetchOHLCVMock.mock.calls[0];
+        expect(requestedSymbol).toBe("BTC/USDT");
+        expect(requestedTimeframe).toBe("1m");
+        expect(Number.isFinite(since)).toBe(true);
+        expect(requestedLimit).toBe(2);
         expect(candles).toEqual([
             { time: 1_700_000_000_000, open: 100, high: 105, low: 95, close: 102, volume: 10 },
             { time: 1_700_000_060_000, open: 102, high: 106, low: 101, close: 104, volume: 12 }
@@ -57,6 +67,44 @@ describe("fetchCandles - crypto (Binance via ccxt)", () => {
         await expect(
             fetchCandles({ symbol: "BTC/USDT", assetClass: "crypto", timeframe: "1m", limit: 5 })
         ).rejects.toThrow("Binance request timed out");
+    });
+
+    it("paginates Binance history to the exact inclusive end boundary", async () => {
+        const endTime = 1_700_000_000_000;
+        const intervalMs = 60_000;
+        const lastOpen = Math.floor(endTime / intervalMs) * intervalMs;
+        const closedLastOpen = lastOpen - intervalMs;
+        const firstOpen = closedLastOpen - (1000 * intervalMs);
+        fetchOHLCVMock.mockImplementation(async (_symbol, _timeframe, since, limit) =>
+            Array.from({ length: limit }, (_, index) => {
+                const time = since + (index * intervalMs);
+                return [time, 1.1, 1.2, 1.0, 1.15, 100 + index];
+            })
+        );
+
+        const result = await fetchCandlesWithMetadata({
+            symbol: "EUR/USDT",
+            assetClass: "crypto",
+            timeframe: "1m",
+            limit: 1001,
+            endTime
+        });
+
+        expect(fetchOHLCVMock).toHaveBeenCalledTimes(2);
+        expect(fetchOHLCVMock.mock.calls.map((call) => call[3])).toEqual([1000, 1]);
+        expect(result.candles).toHaveLength(1001);
+        expect(result.candles[0].time).toBe(firstOpen);
+        expect(result.candles.at(-1).time).toBe(closedLastOpen);
+        expect(result.candles[0]).toEqual({
+            time: firstOpen,
+            open: 1.1,
+            high: 1.2,
+            low: 1.0,
+            close: 1.15,
+            volume: 100
+        });
+        expect(result.integrity.orderingValid).toBe(true);
+        expect(result.duplicateCount).toBe(0);
     });
 });
 
@@ -151,5 +199,152 @@ describe("fetchCandles - forex (Twelve Data via REST)", () => {
 
         const calledUrl = fetchSpy.mock.calls[0][0];
         expect(calledUrl).toContain("interval=1min");
+    });
+
+    it("paginates and stitches Twelve Data responses without losing OHLCV or UTC timestamps", async () => {
+        process.env.TWELVEDATA_API_KEY = "test-key";
+        const endTime = Date.parse("2026-06-01T00:00:00.000Z");
+        const intervalMs = 60_000;
+        const closedEndTime = endTime - intervalMs;
+        const firstPageStart = closedEndTime - (4999 * intervalMs);
+        const fetchSpy = vi.fn(async (url) => {
+            const params = new URL(url).searchParams;
+            const outputsize = Number(params.get("outputsize"));
+            const firstTime = outputsize === 5000
+                ? firstPageStart
+                : firstPageStart - intervalMs;
+            return {
+                json: async () => ({
+                    status: "ok",
+                    values: Array.from({ length: outputsize }, (_, index) => ({
+                        datetime: new Date(firstTime + (index * intervalMs)).toISOString().replace("T", " ").slice(0, 19),
+                        open: "1.10001",
+                        high: "1.20002",
+                        low: "1.00003",
+                        close: "1.15004",
+                        volume: "123.5"
+                    }))
+                })
+            };
+        });
+        vi.stubGlobal("fetch", fetchSpy);
+
+        const result = await fetchCandlesWithMetadata({
+            symbol: "EUR/USD",
+            assetClass: "forex",
+            timeframe: "1m",
+            limit: 5001,
+            endTime
+        });
+
+        expect(fetchSpy).toHaveBeenCalledTimes(2);
+        expect(new URL(fetchSpy.mock.calls[0][0]).searchParams.get("outputsize")).toBe("5000");
+        expect(new URL(fetchSpy.mock.calls[1][0]).searchParams.get("outputsize")).toBe("1");
+        expect(new URL(fetchSpy.mock.calls[0][0]).searchParams.get("timezone")).toBe("UTC");
+        expect(result.candles).toHaveLength(5001);
+        expect(result.candles[0].time).toBe(firstPageStart - intervalMs);
+        expect(result.candles.at(-1).time).toBe(closedEndTime);
+        expect(result.candles[0]).toEqual({
+            time: firstPageStart - intervalMs,
+            open: 1.10001,
+            high: 1.20002,
+            low: 1.00003,
+            close: 1.15004,
+            volume: 123.5
+        });
+        expect(result.integrity.orderingValid).toBe(true);
+        expect(result.duplicateCount).toBe(0);
+    });
+});
+
+describe("historical candle assembly and integrity", () => {
+    const first = { time: 60_000, open: 1, high: 3, low: 0.5, close: 2, volume: 10 };
+    const second = { time: 120_000, open: 2, high: 4, low: 1, close: 3, volume: 11 };
+    const third = { time: 180_000, open: 3, high: 5, low: 2, close: 4, volume: 12 };
+
+    it("deduplicates pages, sorts chronologically, and preserves candle values", () => {
+        const result = stitchCandlePages([[third, second], [first, second]], { endTime: second.time });
+
+        expect(result.candles).toEqual([first, second]);
+        expect(result.rawCandleCount).toBe(4);
+        expect(result.duplicateCount).toBe(1);
+    });
+
+    it("assembles repeated inputs deterministically", () => {
+        const pages = [[third, second], [first, second]];
+        expect(stitchCandlePages(pages, { limit: 3 })).toEqual(
+            stitchCandlePages(pages, { limit: 3 })
+        );
+    });
+
+    it("detects missing intervals and invalid OHLCV without fabricating candles", () => {
+        const report = inspectCandleSeries([
+            first,
+            { ...third, high: 1, volume: -1 }
+        ], "1m", "crypto");
+
+        expect(report.missingIntervalCount).toBe(1);
+        expect(report.gaps[0].classification).toBe("unclassified_data_gap");
+        expect(report.invalidCount).toBe(1);
+        expect(report.candleCount).toBe(2);
+    });
+
+    it("classifies a forex weekend closure separately from an unexplained data gap", () => {
+        const fridayClose = Date.parse("2026-10-02T21:00:00.000Z");
+        const sundayOpen = Date.parse("2026-10-04T21:00:00.000Z");
+        const report = inspectCandleSeries([
+            { ...first, time: fridayClose },
+            { ...second, time: sundayOpen }
+        ], "15m", "forex");
+
+        expect(report.gaps[0].classification).toBe("expected_market_closure");
+    });
+
+    it("classifies New Year and Good Friday FX closures as expected", () => {
+        const newYear = inspectCandleSeries([
+            { ...first, time: Date.parse("2024-12-31T00:00:00.000Z") },
+            { ...second, time: Date.parse("2025-01-02T00:00:00.000Z") }
+        ], "1d", "forex");
+        const easter = inspectCandleSeries([
+            { ...first, time: Date.parse("2025-04-17T00:00:00.000Z") },
+            { ...second, time: Date.parse("2025-04-22T00:00:00.000Z") }
+        ], "1d", "forex");
+
+        expect(newYear.gaps[0].classification).toBe("expected_market_closure");
+        expect(easter.gaps[0].classification).toBe("expected_market_closure");
+    });
+});
+
+describe("ForexDataService - completed candle polling", () => {
+    it("emits the newest bar as a tick and the preceding bar as closed", async () => {
+        const service = new ForexDataService("eurusd", "1m");
+        const ticks = [];
+        const candles = [];
+        service.onTick((candle) => ticks.push(candle));
+        service.onCandle((candle) => candles.push(candle));
+        service.getCandles = vi.fn()
+            .mockResolvedValueOnce([
+                { time: 1, close: 1 },
+                { time: 2, close: 2 },
+                { time: 3, close: 3 }
+            ])
+            .mockResolvedValueOnce([
+                { time: 2, close: 2 },
+                { time: 3, close: 3 },
+                { time: 4, close: 4 }
+            ]);
+        service.manualDisconnect = true;
+
+        await service.poll();
+        await service.poll();
+
+        expect(ticks.map((candle) => [candle.time, candle.closed])).toEqual([
+            [3, false],
+            [4, false]
+        ]);
+        expect(candles.map((candle) => [candle.time, candle.closed])).toEqual([
+            [2, true],
+            [3, true]
+        ]);
     });
 });

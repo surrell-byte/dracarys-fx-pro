@@ -13,6 +13,54 @@ function makeTracker() {
 }
 
 describe("BinaryOutcomeTracker - symbol scoping (Phase 5 fix)", () => {
+    it("records manually confirmed outcomes with signal metadata", () => {
+        const tracker = new BinaryOutcomeTracker(["balanced"]);
+        tracker.setSymbol("EURUSD", "forex");
+
+        expect(tracker.recordManualOutcome({
+            strategy: "balanced",
+            direction: "BUY",
+            entryPrice: 1.1,
+            expiryLength: 5,
+            confidence: 72,
+            win: true
+        })).toBe(true);
+
+        expect(tracker.resolved.at(-1)).toMatchObject({
+            strategy: "balanced",
+            direction: "BUY",
+            symbol: "EURUSD",
+            assetClass: "forex",
+            confidence: 72,
+            source: "manual",
+            win: true
+        });
+    });
+
+    it("stores skipped signals without counting them as outcomes", () => {
+        const tracker = makeTracker();
+        tracker.setSymbol("EURUSD", "forex");
+
+        expect(tracker.recordManualOutcome({
+            strategy: "balanced", direction: "BUY", entryPrice: 1.1,
+            expiryLength: 5, win: null
+        })).toBe(true);
+
+        expect(tracker.skipped).toHaveLength(1);
+        expect(tracker.skipped.at(-1)).toMatchObject({
+            strategy: "balanced",
+            direction: "BUY",
+            pair: "EURUSD",
+            symbol: "EURUSD",
+            assetClass: "forex",
+            result: "skip",
+            win: null,
+            source: "manual"
+        });
+        expect(tracker.resolved).toHaveLength(0);
+        expect(tracker.getBinaryStats()).toHaveLength(0);
+    });
+
     let tracker;
 
     beforeEach(() => {

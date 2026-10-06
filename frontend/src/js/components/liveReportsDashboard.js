@@ -1,3 +1,5 @@
+import { readJsonResponse } from "./reportJson.js";
+
 const REFRESH_MS = 60_000;
 const page = document.querySelector("#page-live-reports");
 
@@ -19,7 +21,11 @@ if (page) {
                 fetch("/api/report-history?route=reports/daily&limit=3650", { cache: "no-store" }),
                 fetch("/api/report-history?route=reports/weekly&limit=3650", { cache: "no-store" })
             ]);
-            const [data, daily, weekly] = await Promise.all([response.json(), dailyResponse.json(), weeklyResponse.json()]);
+            const [data, daily, weekly] = await Promise.all([
+                response.ok ? readJsonResponse(response, "Unable to load live reports.") : Promise.reject(new Error("Unable to load live reports.")),
+                readJsonResponse(dailyResponse, "Unable to load daily reports.").catch(() => ({ reports: [] })),
+                readJsonResponse(weeklyResponse, "Unable to load weekly reports.").catch(() => ({ reports: [] }))
+            ]);
             if (!response.ok) throw new Error(data.error || "Unable to load live reports.");
             render(data);
             renderSnapshots(dailyReports, daily.reports || []);
