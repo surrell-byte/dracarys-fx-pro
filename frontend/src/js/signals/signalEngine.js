@@ -1,3 +1,5 @@
+import { STRATEGIES } from "@signals/strategyRegistry.js";
+export { STRATEGIES };
 import {
     calculateADX,
     calculateATR,
@@ -50,282 +52,19 @@ import { analyzeMitigation } from "@smartMoney/mitigation.js";
 const DEFAULT_ATR_STOP_MULTIPLIER = 1.8;
 const DEFAULT_REWARD_MULTIPLE = 2.5;
 
-export const STRATEGIES = {
-    balanced: {
-        label: "Balanced",
-        threshold: 55,
-        // Diagnostics (2026-08-16) showed this strategy is gross-positive
-        // (+0.001% expectancy) but a flat ~0.28% round-trip cost destroys
-        // it - the target was too small to be worth trading at all, gross
-        // or net. Widened reward multiple so a win is actually large
-        // enough to matter against a fixed cost, and opted into the
-        // maker cost profile since a wider target tolerates the extra
-        // time-to-fill a resting limit order implies.
-        atrStopMultiplier: 1.8,
-        rewardMultiple: 4.0,
-        costProfile: "maker",
-        weights: {
-            trend: 20,
-            momentum: 20,
-            rsi: 20,
-            bands: 15,
-            pattern: 15,
-            levels: 10,
-            adxBoost: 10
-        }
-    },
-    trend: {
-        label: "Trend Follow",
-        threshold: 60,
-        weights: {
-            trend: 35,
-            momentum: 30,
-            rsi: 8,
-            bands: 5,
-            pattern: 8,
-            levels: 4,
-            adxBoost: 15
-        }
-    },
-    meanReversion: {
-        label: "Mean Reversion",
-        threshold: 58,
-        weights: {
-            trend: 6,
-            momentum: 8,
-            rsi: 35,
-            bands: 28,
-            pattern: 12,
-            levels: 16,
-            adxBoost: -8
-        }
-    },
-    breakout: {
-        label: "Breakout",
-        threshold: 62,
-        weights: {
-            trend: 22,
-            momentum: 24,
-            rsi: 6,
-            bands: 18,
-            pattern: 8,
-            levels: 25,
-            adxBoost: 16
-        }
-    },
-    scalping: {
-        label: "Scalping",
-        threshold: 52,
-        // Same fix as "balanced" above: +0.021% gross expectancy against
-        // a ~0.27% flat cost drag is not a viable trade size. Widened the
-        // reward multiple and opted into the maker cost profile. Note
-        // this changes what "scalping" means here - it's no longer
-        // optimized for many small, fast wins, since that shape of trade
-        // cannot outrun a flat per-trade cost no matter how good the
-        // entries are. If gross edge doesn't hold up at this larger
-        // target size, that's a separate, real finding, not a bug.
-        atrStopMultiplier: 1.8,
-        rewardMultiple: 4.0,
-        costProfile: "maker",
-        weights: {
-            trend: 12,
-            momentum: 24,
-            rsi: 24,
-            bands: 16,
-            pattern: 18,
-            levels: 8,
-            adxBoost: 5
-        }
-    },
-    pullback: {
-        label: "Pullback (Fib)",
-        threshold: 58,
-        weights: {
-            trend: 28,
-            momentum: 16,
-            rsi: 10,
-            bands: 6,
-            pattern: 14,
-            levels: 22,
-            adxBoost: 12
-        }
-    },
-    momentum: {
-        label: "Momentum",
-        threshold: 60,
-        weights: {
-            trend: 18,
-            momentum: 32,
-            rsi: 4,
-            bands: 6,
-            pattern: 10,
-            levels: 6,
-            adxBoost: 18
-        }
-    },
-    range: {
-        label: "Range Trading",
-        threshold: 56,
-        weights: {
-            trend: 4,
-            momentum: 6,
-            rsi: 30,
-            bands: 30,
-            pattern: 14,
-            levels: 18,
-            adxBoost: -16
-        }
-    },
-    ema165SarRoc: {
-        label: "EMA165 SAR ROC21",
-        threshold: 68,
-        custom: "ema165SarRoc",
-        weights: {
-            trend: 0,
-            momentum: 0,
-            rsi: 0,
-            bands: 0,
-            pattern: 0,
-            levels: 0,
-            adxBoost: 0
-        }
-    },
-    // "Trend-Following" duplicates the existing "Trend Follow" id/name above,
-    // so this one is differentiated as "Trend Following 2".
-    trendFollowing2: {
-        label: "Trend Following 2 (EMA 50/200)",
-        threshold: 62,
-        custom: "trendFollowing2",
-        useHigherTimeframe: true,
-        atrStopMultiplier: 2.0,
-        rewardMultiple: 2.5,
-        weights: {
-            trend: 0,
-            momentum: 0,
-            rsi: 0,
-            bands: 0,
-            pattern: 0,
-            levels: 0,
-            adxBoost: 0
-        }
-    },
-    // "Breakout + Volume Confirmation" duplicates the existing "Breakout" id/name above,
-    // so this one is differentiated as "Breakout 2".
-    breakout2: {
-        label: "Breakout 2 (Volume Confirmed)",
-        threshold: 60,
-        custom: "breakout2",
-        atrStopMultiplier: 1.5,
-        rewardMultiple: 2.0,
-        weights: {
-            trend: 0,
-            momentum: 0,
-            rsi: 0,
-            bands: 0,
-            pattern: 0,
-            levels: 0,
-            adxBoost: 0
-        }
-    },
-    // "Mean Reversion with RSI" duplicates the existing "Mean Reversion" id/name above,
-    // so this one is differentiated as "Mean Reversion 2".
-    meanReversion2: {
-        label: "Mean Reversion 2 (RSI Range)",
-        threshold: 55,
-        custom: "meanReversion2",
-        weights: {
-            trend: 0,
-            momentum: 0,
-            rsi: 0,
-            bands: 0,
-            pattern: 0,
-            levels: 0,
-            adxBoost: 0
-        }
-    },
-    // "EMA Pullback + ADX Trend Filter" is conceptually close to the existing
-    // "Pullback (Fib)" strategy, so this one is named to make the distinction
-    // clear: EMA20/50 trend with a strict ADX gate and a single-candle
-    // wick-below/close-above EMA20 confirmation trigger (not a fib retracement).
-    emaPullbackAdx: {
-        label: "EMA Pullback (ADX Filter)",
-        threshold: 65,
-        custom: "emaPullbackAdx",
-        useHigherTimeframe: true,
-        atrStopMultiplier: 1.5,
-        rewardMultiple: 2.5,
-        weights: {
-            trend: 0,
-            momentum: 0,
-            rsi: 0,
-            bands: 0,
-            pattern: 0,
-            levels: 0,
-            adxBoost: 0
-        }
-    },
-    derivBinaryMomentum: {
-        label: "Deriv Binary Momentum",
-        threshold: 65,
-        custom: "derivBinaryMomentum",
-        weights: {
-            trend: 0,
-            momentum: 0,
-            rsi: 0,
-            bands: 0,
-            pattern: 0,
-            levels: 0,
-            adxBoost: 0
-        }
-    },
-    sessionMeanReversion: {
-        label: "Session Mean Reversion (Experimental)",
-        threshold: 65,
-        custom: "sessionMeanReversion",
-        weights: { trend: 0, momentum: 0, rsi: 0, bands: 0, pattern: 0, levels: 0, adxBoost: 0 }
-    },
-    sessionMomentum: {
-        label: "Liquid Session Momentum (Experimental)",
-        threshold: 65,
-        custom: "sessionMomentum",
-        weights: { trend: 0, momentum: 0, rsi: 0, bands: 0, pattern: 0, levels: 0, adxBoost: 0 }
-    },
-    metaLabelFilter: {
-        label: "Meta-Label Filter (Experimental)",
-        threshold: 70,
-        custom: "metaLabelFilter",
-        weights: { trend: 0, momentum: 0, rsi: 0, bands: 0, pattern: 0, levels: 0, adxBoost: 0 }
-    },
-    // Milestone 1: the new module pipeline. Every indicator votes
-    // independently as { signal, confidence, reason }; ai/confidence.js
-    // combines the votes instead of hand-tuned point addition. This sits
-    // alongside every strategy above rather than replacing any of them —
-    // pick it from the dropdown like any other strategy to compare it
-    // against the hand-tuned ones on the same market.
-    aiConfidence: {
-        label: "AI Confidence Pipeline",
-        threshold: 50,
-        custom: "aiConfidence",
-        weights: {
-            trend: 0,
-            momentum: 0,
-            rsi: 0,
-            bands: 0,
-            pattern: 0,
-            levels: 0,
-            adxBoost: 0
-        }
-    }
-};
-
 export function generateSignal(candles, strategyId = "balanced", context = {}) {
     const strategy = STRATEGIES[strategyId] ?? STRATEGIES.balanced;
     const higherTrend = context?.higherTrend ?? "NEUTRAL";
     const riskOverrides = context?.strategyRiskOverrides ?? {};
+    const breakoutLookback = riskOverrides.lookback ?? 50;
+    const breakoutRequiredCandles = Math.max(
+        60,
+        Number.isFinite(Number(breakoutLookback)) ? Number(breakoutLookback) + 1 : 60
+    );
 
     const requiredCandles = strategy.custom === "ema165SarRoc" ? 180
         : strategy.custom === "trendFollowing2" ? 220
-        : strategy.custom === "breakout2" ? 60
+        : strategy.custom === "breakout2" ? breakoutRequiredCandles
         : strategy.custom === "meanReversion2" ? 40
         : 55;
 
@@ -397,7 +136,9 @@ export function generateSignal(candles, strategyId = "balanced", context = {}) {
             atrPercent,
             candles,
             price,
-            volumeRatio
+            volumeRatio,
+            lookback: breakoutLookback,
+            volumeRatioThreshold: riskOverrides.volumeRatio ?? 1.5
         })
         : strategy.custom === "meanReversion2"
         ? scoreMeanReversion2({
@@ -741,9 +482,8 @@ function scoreTrendFollowing2({ adx, atrPercent, ema20, ema50, ema200, price, vo
 
 // Rules: mark a prior range, require price to close beyond it (not just
 // wick through), and only trust the breakout if volume is >= 1.5x average.
-function scoreBreakout2({ adx, atrPercent, candles, price, volumeRatio }) {
+function scoreBreakout2({ adx, atrPercent, candles, price, volumeRatio, lookback = 50, volumeRatioThreshold = 1.5 }) {
     const reasons = [];
-    const lookback = 50;
     // Exclude the current/latest candle so we're comparing the close against
     // a range that was established *before* this bar, not including it.
     const priorCandles = candles.slice(-lookback - 1, -1);
@@ -766,14 +506,14 @@ function scoreBreakout2({ adx, atrPercent, candles, price, volumeRatio }) {
     const rangeLow = Math.min(...priorCandles.map(c => c.low));
     const brokeAbove = price > rangeHigh;
     const brokeBelow = price < rangeLow;
-    const volumeConfirmed = Number.isFinite(volumeRatio) && volumeRatio >= 1.5;
+    const volumeConfirmed = Number.isFinite(volumeRatio) && volumeRatio >= volumeRatioThreshold;
 
     if (brokeAbove) {
         buyScore += 50;
         reasons.push("Close above prior range resistance");
         if (volumeConfirmed) {
             buyScore += 30;
-            reasons.push("Volume >= 1.5x average");
+            reasons.push(`Volume >= ${volumeRatioThreshold}x average`);
         } else {
             penalty += 20;
             reasons.push("Breakout lacks volume confirmation");
@@ -783,7 +523,7 @@ function scoreBreakout2({ adx, atrPercent, candles, price, volumeRatio }) {
         reasons.push("Close below prior range support");
         if (volumeConfirmed) {
             sellScore += 30;
-            reasons.push("Volume >= 1.5x average");
+            reasons.push(`Volume >= ${volumeRatioThreshold}x average`);
         } else {
             penalty += 20;
             reasons.push("Breakdown lacks volume confirmation");

@@ -1,4 +1,5 @@
 import demo from "@demo/demoAccount.js";
+import { readJsonResponse } from "./reportJson.js";
 
 const page = document.querySelector("#page-daily-reports");
 
@@ -65,10 +66,10 @@ function escapeHtmlDaily(value) {
 async function fetchReports() {
     const response = await fetch(API_ROUTE, { cache: "no-store" });
     if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
+        const data = await readJsonResponse(response, "Unable to load daily reports.").catch(() => ({}));
         throw new Error(data.error || "Unable to load daily reports.");
     }
-    const payload = await response.json();
+    const payload = await readJsonResponse(response, "Unable to load daily reports.");
     return Array.isArray(payload.reports) ? payload.reports : [];
 }
 

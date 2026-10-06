@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { fetchCandles } from '../scheduler/candles.js';
 import { runBacktest } from '../../src/js/analysis/backtestEngine.js';
+import { runSweep } from '../../src/js/analysis/sweepRunner.js';
 
 function parseArgs(argv) {
   const args = { strategy: null, symbol: 'BTC/USDT', assetClass: 'crypto', timeframe: '5m', limit: 2000, atrs: '1.0,1.2', rewards: '1.5,2.5', volumes: '0.5,1.0,1.5', lookbacks: '5,10,20' };
@@ -39,18 +40,49 @@ async function main(){
 
   for (const vol of volumes) {
     for (const lk of lookbacks) {
-      const results = [];
+      const combinations = [];
       for (const atr of atrList) {
         for (const reward of rewardList) {
-          const strategyOverrides = { atrStopMultiplier: atr, rewardMultiple: reward, volumeRatio: vol, lookback: lk };
-          const result = await runBacktest(candles, { strategyIds: [args.strategy], payoutRatio: reward, extraStrategyConfig: { [args.strategy]: strategyOverrides }, assetClass: null });
-          const row = result.spotLeaderboard.find(r => r.strategy === args.strategy) || {};
-          results.push({ atr, reward, vol, lk, trades: row.trades, expectancy: row.expectancy, profitFactor: row.profitFactor });
-          console.log(`vol=${vol}, lk=${lk}, atr=${atr}, reward=${reward} -> trades=${row.trades}, exp=${pct(row.expectancy)}`);
+          combinations.push({
+            strategyId: args.strategy,
+            atr,
+            reward,
+            payoutRatio: reward,
+            volumeRatio: vol,
+            lookback: lk,
+            assetClass: args.assetClass
+          });
         }
       }
+
+      const results = await runSweep({
+        candles,
+        combinations,
+        executor: runBacktest,
+        baseOptions: {
+          strategyIds: [args.strategy],
+          assetClass: args.assetClass
+        }
+      });
+
+      const persistedResults = results.map((entry) => ({
+        atr: entry.config?.atr ?? null,
+        reward: entry.config?.reward ?? null,
+        vol,
+        lk,
+        trades: entry.metrics?.trades ?? 0,
+        expectancy: entry.metrics?.expectancy ?? null,
+        profitFactor: entry.metrics?.profitFactor ?? null,
+        status: entry.status,
+        error: entry.error ?? null
+      }));
+
+      for (const entry of results) {
+        console.log(`vol=${vol}, lk=${lk}, atr=${entry.config?.atr}, reward=${entry.config?.reward} -> status=${entry.status}, trades=${entry.metrics?.trades ?? 0}, exp=${pct(entry.metrics?.expectancy)}`);
+      }
+
       const outPath = path.resolve(`${outDir}/parameter-sweep-${args.strategy}-${args.symbol.replace('/','-')}-${args.timeframe}-vol${vol}-lk${lk}.json`);
-      await fs.writeFile(outPath, JSON.stringify(results,null,2),'utf8');
+      await fs.writeFile(outPath, JSON.stringify(persistedResults,null,2),'utf8');
       console.log('Saved', outPath);
     }
   }

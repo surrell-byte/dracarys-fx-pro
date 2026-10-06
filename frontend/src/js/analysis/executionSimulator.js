@@ -28,6 +28,26 @@ function calculateRawPnlPct(type, entryPrice, exitPrice) {
     throw new Error(`Unsupported position type: ${type}`);
 }
 
+export function normalizeAmbiguousFillRule(rule = "close-biased") {
+    return rule === "optimistic" || rule === "conservative" || rule === "close-biased"
+        ? rule
+        : "close-biased";
+}
+
+export function normalizeCloseReason(reason = "unknown") {
+    const normalized = String(reason ?? "unknown").trim().toLowerCase();
+    if (["end_of_data", "end of data", "expired", "timeout", "time_out"].includes(normalized)) {
+        return "timeout";
+    }
+    if (["stoploss", "stop_loss", "sl", "stopped", "stopLoss"].includes(normalized)) {
+        return "stop_loss";
+    }
+    if (["takeprofit", "take_profit", "tp", "target", "takeProfit"].includes(normalized)) {
+        return "take_profit";
+    }
+    return normalized || "unknown";
+}
+
 function finaliseExit({
     position,
     rawExitPrice,
@@ -85,7 +105,7 @@ function finaliseExit({
     return {
         outcome: pnlPct >= 0 ? "win" : "loss",
 
-        closeReason,
+        closeReason: normalizeCloseReason(closeReason),
 
         rawExitPrice,
 
@@ -119,10 +139,12 @@ export function evaluateCandleExit({
     candle,
     candlesSinceOpen = 0,
     maxHoldCandles = Infinity,
-    ambiguousFillRule = "conservative",
+    ambiguousFillRule = "close-biased",
     assetClass = "crypto",
     costs = null
 }) {
+    const resolvedAmbiguousFillRule = normalizeAmbiguousFillRule(ambiguousFillRule);
+
     if (!position || !candle) return null;
     validateFinite("position.entryPrice", position.entryPrice);
     validateFinite("candle.high", Number(candle.high));
@@ -152,11 +174,26 @@ export function evaluateCandleExit({
         : hasTakeProfit && low <= takeProfit;
 
     if (stopHit && targetHit) {
-        if (ambiguousFillRule === "optimistic") {
+        if (resolvedAmbiguousFillRule === "optimistic") {
             return finaliseExit({
                 position,
                 rawExitPrice: takeProfit,
                 closeReason: "take_profit",
+                candleTime: candle.time,
+                assetClass,
+                costs
+            });
+        }
+
+        if (resolvedAmbiguousFillRule === "close-biased") {
+            const closesOnTakeProfitSide = type === "BUY"
+                ? close >= takeProfit
+                : close <= takeProfit;
+
+            return finaliseExit({
+                position,
+                rawExitPrice: closesOnTakeProfitSide ? takeProfit : stopLoss,
+                closeReason: closesOnTakeProfitSide ? "take_profit" : "stop_loss",
                 candleTime: candle.time,
                 assetClass,
                 costs

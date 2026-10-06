@@ -7,7 +7,11 @@ import {
     applyFeeToPnl,
     DEFAULT_EXECUTION_COSTS
 } from "@analysis/executionCosts.js";
-import { createEntryFill, evaluateCandleExit } from "@analysis/executionSimulator.js";
+import {
+    createEntryFill,
+    evaluateCandleExit,
+    normalizeAmbiguousFillRule
+} from "@analysis/executionSimulator.js";
 import { computeStrategyStats } from "@analysis/performanceStats.js";
 import { passesEntryFilters } from "@risk/entryFilters.js";
 
@@ -324,7 +328,7 @@ export async function runBacktest(candles, options = {}) {
         assetClass = null,
         costs = null,
         maxHoldCandles = Infinity,
-        ambiguousFillRule = "conservative",
+        ambiguousFillRule = "close-biased",
         // Merged into every generateSignal() context alongside higherTrend.
         // Exists so callers (e.g. scripts/analysis/smcAblationTest.js) can
         // pass strategy-scoring options like excludeVoteModules through the
@@ -341,6 +345,8 @@ export async function runBacktest(candles, options = {}) {
     if (!Array.isArray(candles) || candles.length < 2) {
         throw new Error("Not enough candles to backtest (need at least 2).");
     }
+
+    const normalizedAmbiguousFillRule = normalizeAmbiguousFillRule(ambiguousFillRule);
 
     const getHigherTrend = buildHigherTimeframeLookup(dailyCandles);
     const usesHigherTimeframe = strategyIds.some((id) => STRATEGIES[id]?.useHigherTimeframe);
@@ -486,7 +492,7 @@ export async function runBacktest(candles, options = {}) {
                     candle: candles[i],
                     candlesSinceOpen: position.candlesSinceOpen,
                     maxHoldCandles,
-                    ambiguousFillRule,
+                    ambiguousFillRule: normalizedAmbiguousFillRule,
                     assetClass,
                     costs: resolveCostsForStrategy(id, assetClass, costs)
                 });
@@ -533,6 +539,11 @@ export async function runBacktest(candles, options = {}) {
                          */
                         pnlPercent:
                             exit.pnlPct,
+
+                        riskPercent:
+                            Number.isFinite(position.stopLoss) && position.entryPrice > 0
+                                ? (Math.abs(position.entryPrice - position.stopLoss) / position.entryPrice) * 100
+                                : null,
 
                         costDragPercent:
                             Number.isFinite(exit.costDragPercent)
@@ -649,8 +660,26 @@ export async function runBacktest(candles, options = {}) {
                         assetClass,
                         costs: resolveCostsForStrategy(id, assetClass, costs)
                     });
-                position.stopLoss = signal.risk?.stopLoss ?? null;
-                position.takeProfit = signal.risk?.takeProfit ?? null;
+
+                const rawStop = Number(signal.risk?.stopLoss);
+                const rawTakeProfit = Number(signal.risk?.takeProfit);
+                const rawRiskDistance = Number.isFinite(rawStop)
+                    ? Math.abs(rawPrice - rawStop)
+                    : null;
+                const rawRewardDistance = Number.isFinite(rawTakeProfit)
+                    ? Math.abs(rawTakeProfit - rawPrice)
+                    : null;
+
+                position.stopLoss = Number.isFinite(rawRiskDistance)
+                    ? (position.type === "BUY"
+                        ? position.entryPrice - rawRiskDistance
+                        : position.entryPrice + rawRiskDistance)
+                    : null;
+                position.takeProfit = Number.isFinite(rawRewardDistance)
+                    ? (position.type === "BUY"
+                        ? position.entryPrice + rawRewardDistance
+                        : position.entryPrice - rawRewardDistance)
+                    : null;
                 position.candlesSinceOpen = 0;
                 position.confidence = Number.isFinite(signal.confidence)
                     ? signal.confidence
@@ -738,7 +767,7 @@ export async function runBacktest(candles, options = {}) {
                 candlesSinceOpen:
                     position.candlesSinceOpen + 1,
                 maxHoldCandles,
-                ambiguousFillRule,
+                ambiguousFillRule: normalizedAmbiguousFillRule,
                 assetClass,
                 costs: resolveCostsForStrategy(id, assetClass, costs)
             });
@@ -795,6 +824,25 @@ export async function runBacktest(candles, options = {}) {
                         resolveCostsForStrategy(id, assetClass, costs)
                     );
 
+                const riskPercent = Number.isFinite(position.entryPrice) &&
+                    Number.isFinite(position.stopLoss) &&
+                    position.entryPrice !== 0
+                    ? Math.abs(position.entryPrice - position.stopLoss) /
+                      Math.abs(position.entryPrice) * 100
+                    : null;
+
+                const netRMultiple = Number.isFinite(pnlPct) &&
+                    Number.isFinite(riskPercent) &&
+                    riskPercent > 0
+                    ? pnlPct / riskPercent
+                    : null;
+
+                const grossRMultiple = Number.isFinite(grossPnlPercent) &&
+                    Number.isFinite(riskPercent) &&
+                    riskPercent > 0
+                    ? grossPnlPercent / riskPercent
+                    : null;
+
                 return {
                     rawExitPrice:
                         rawExit,
@@ -808,6 +856,22 @@ export async function runBacktest(candles, options = {}) {
                     costDragPercent:
                         pnlPct -
                         grossPnlPercent,
+
+                    stopLoss:
+                        Number.isFinite(position.stopLoss)
+                            ? position.stopLoss
+                            : null,
+
+                    takeProfit:
+                        Number.isFinite(position.takeProfit)
+                            ? position.takeProfit
+                            : null,
+
+                    riskPercent,
+
+                    rMultiple: netRMultiple,
+
+                    grossRMultiple,
 
                     outcome:
                         pnlPct >= 0

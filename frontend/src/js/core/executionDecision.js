@@ -30,6 +30,16 @@ export function decideExecution(signal, settings, { isCoolingDown, paperPnl }) {
         return { action: "skip", statusMessage: `Confidence below ${settings.minConfidence}%` };
     }
 
+    if (
+        Number.isFinite(settings.maxExpiryMinutes) &&
+        signal?.expiry?.minutes > settings.maxExpiryMinutes
+    ) {
+        return {
+            action: "skip",
+            statusMessage: `Expiry exceeds ${settings.maxExpiryMinutes}m maximum`
+        };
+    }
+
     if (isCoolingDown) {
         return { action: "skip", statusMessage: "Cooldown active" };
     }

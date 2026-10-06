@@ -1,60 +1,67 @@
 :root {
-    /* ===== Colour Palette ===== */
-    --primary: #2563EB;
-    --primary-hover: #1D4ED8;
-    --primary-pressed: #1E40AF;
-    --primary-rgb: 37, 99, 235;
+    /* ===== Premium dark terminal palette ===== */
+    --primary: #ff9500;
+    --primary-hover: #ffab2e;
+    --primary-pressed: #cc7000;
+    --primary-rgb: 255, 149, 0;
 
-    --success: #22C55E;
-    --success-hover: #16A34A;
-    --success-rgb: 34, 197, 94;
+    --success: #20c878;
+    --success-hover: #14a65c;
+    --success-rgb: 32, 200, 120;
 
-    --warning: #FBBF24;
-    --warning-hover: #F59E0B;
-    --warning-rgb: 251, 191, 36;
+    --warning: #f5b82e;
+    --warning-hover: #ffab2e;
+    --warning-rgb: 245, 184, 46;
 
-    --purple: #8B5CF6;
-    --purple-hover: #7C3AED;
+    --purple: #8b5cf6;
+    --purple-hover: #7c3aed;
     --purple-rgb: 139, 92, 246;
 
-    --danger: #EF4444;
-    --danger-hover: #DC2626;
-    --danger-rgb: 239, 68, 68;
+    --danger: #ff4d5e;
+    --danger-hover: #dc2626;
+    --danger-rgb: 255, 77, 94;
 
     /* Backgrounds */
-    --bg: #F8FAFC;
-    --panel: #FFFFFF;
-    --panel-soft: #FFFFFF;
-    --bg-secondary: #F1F5F9;
+    --bg: #08090b;
+    --panel: #111419;
+    --panel-soft: #15181e;
+    --panel-hover: #1a1e25;
+    --bg-secondary: #0d0f12;
+
+    /* Sidebar */
+    --sidebar: #0d0f12;
 
     /* Borders */
-    --line: #E2E8F0;
-    --line-strong: #CBD5E1;
+    --line: #252a32;
+    --line-strong: #303641;
+    --border: #252a32;
+    --border-light: #303641;
 
     /* Text */
-    --text: #1E293B;
-    --text-secondary: #64748B;
-    --text-rgb: 30, 41, 59;
-    --steel-rgb: 100, 116, 139;
+    --text: #f5f7fa;
+    --text-secondary: #9ba2ad;
+    --text-muted: #626a76;
+    --text-rgb: 245, 247, 250;
+    --steel-rgb: 155, 162, 173;
 
     /* Semantic */
-    --buy: #22C55E;
-    --buy-rgb: 34, 197, 94;
-    --sell: #EF4444;
-    --sell-rgb: 239, 68, 68;
+    --buy: #20c878;
+    --buy-rgb: 32, 200, 120;
+    --sell: #ff4d5e;
+    --sell-rgb: 255, 77, 94;
 
     /* ===== Shadows ===== */
-    --shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
-    --shadow-hover: 0 14px 30px rgba(15, 23, 42, 0.10);
-    --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
-    --shadow-md: 0 6px 18px rgba(15, 23, 42, 0.06);
-    --shadow-lg: 0 14px 30px rgba(15, 23, 42, 0.10);
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    --shadow-hover: 0 14px 34px rgba(0, 0, 0, 0.35);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.12);
+    --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.16);
+    --shadow-lg: 0 14px 30px rgba(0, 0, 0, 0.22);
 
     /* ===== Border Radius ===== */
     --radius-soft: 14px;
     --radius-card: 20px;
     --radius-chart: 20px;
-    --radius-sidebar: 28px;
+    --radius-sidebar: 20px;
     --radius-search: 999px;
 
     /* ===== Typography ===== */

@@ -228,6 +228,41 @@ describe("backtestEngine", () => {
         }));
     });
 
+    it("normalizes an unknown ambiguity rule into the documented close-biased settlement for the backtest API", async () => {
+        const candles = [
+            {
+                time: 1,
+                open: 100,
+                high: 101,
+                low: 99,
+                close: 100,
+                volume: 1
+            },
+            {
+                time: 2,
+                open: 100,
+                high: 111,
+                low: 94,
+                close: 111,
+                volume: 1
+            }
+        ];
+
+        const result = await runBacktest(candles, {
+            strategyIds: ["fakeStrategy"],
+            assetClass: "crypto",
+            costs: zeroCosts,
+            ambiguousFillRule: "legacy"
+        });
+
+        const trades = result.spotTradesByStrategy.fakeStrategy;
+
+        expect(trades).toHaveLength(1);
+        expect(trades[0].closeReason).toBe("take_profit");
+        expect(trades[0].exit).toBe(110);
+        expect(trades[0].outcome).toBe("win");
+    });
+
     it("checks an open position even when the current signal is WAIT", async () => {
         const candles = [
             {
@@ -264,10 +299,46 @@ describe("backtestEngine", () => {
             side: "long",
             entry: 100,
             exit: 95,
+            riskPercent: 5,
             closeReason: "stop_loss",
             outcome: "loss",
             regime: "TRENDING"
         });
+    });
+
+    it("defaults the ambiguous same-candle stop/take-profit overlap to a close-biased settlement", async () => {
+        const candles = [
+            {
+                time: 1,
+                open: 100,
+                high: 101,
+                low: 99,
+                close: 100,
+                volume: 1
+            },
+            {
+                time: 2,
+                open: 100,
+                high: 111,
+                low: 94,
+                close: 111,
+                volume: 1
+            }
+        ];
+
+        const result = await runBacktest(candles, {
+            strategyIds: ["fakeStrategy"],
+            assetClass: "crypto",
+            costs: zeroCosts,
+            minSampleSize: 1
+        });
+
+        const trades = result.spotTradesByStrategy.fakeStrategy;
+
+        expect(trades).toHaveLength(1);
+        expect(trades[0].closeReason).toBe("take_profit");
+        expect(trades[0].exit).toBe(110);
+        expect(trades[0].outcome).toBe("win");
     });
 
     it("records regime on the completed trade", async () => {

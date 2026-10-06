@@ -38,6 +38,10 @@ function stats(trades) {
         trades: result.trades,
         expectancy: result.expectancy,
         profitFactor: result.profitFactor,
+        expectancyR: result.expectancyR,
+        profitFactorR: result.profitFactorR,
+        totalR: result.totalR,
+        maxDrawdownR: result.maxDrawdownR,
         winRate: result.winRate != null ? result.winRate * 100 : null,
         totalPnl: result.totalReturn,
         avgWin: result.avgWin,
@@ -291,12 +295,19 @@ function classifyDiagnosis({
      * ------------------------------------------------------------
      */
     if (Number.isFinite(grossExpectancy) && grossExpectancy < 0) {
-        /*
-         * However, if MFE is meaningfully positive while the
-         * realised result is negative, the signal may contain
-         * directional information that the exit model is failing
-         * to capture.
-         */
+        if (
+            Number.isFinite(excursions?.averageMFE) &&
+            excursions.averageMFE > 0 &&
+            Number.isFinite(excursions?.averageMAE) &&
+            excursions.averageMFE > Math.abs(excursions.averageMAE)
+        ) {
+            return {
+                category: "EXIT_MODEL_FAILURE",
+                recommendation:
+                    "Trades show favourable excursion despite negative realised expectancy. Investigate stop distance, take-profit distance and maximum holding period before changing the signal."
+            };
+        }
+
         if (
             Number.isFinite(excursions?.averageMFE) &&
             excursions.averageMFE > 0 &&
@@ -335,19 +346,6 @@ function classifyDiagnosis({
         return {
             category: "CONFIDENCE_SENSITIVE",
             recommendation: "Performance varies across confidence bands. Test whether confidence contains useful ranking information before changing the signal."
-        };
-    }
-
-    /*
-     * ------------------------------------------------------------
-     * EXIT MODEL FAILURE
-     * ------------------------------------------------------------
-     */
-    if (Number.isFinite(grossExpectancy) && grossExpectancy < 0 && Number.isFinite(excursions?.averageMFE) && excursions.averageMFE > 0) {
-        return {
-            category: "EXIT_MODEL_FAILURE",
-            recommendation:
-                "Trades show favourable excursion despite negative realised expectancy. Investigate stop distance, take-profit distance and maximum holding period before changing the signal."
         };
     }
 

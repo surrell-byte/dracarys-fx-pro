@@ -361,9 +361,11 @@ function buildTradeGroupStats(trades, { groupKey, foldRows = [] }) {
     const wins = orderedTrades.filter((trade) => Number(trade.pnlPercent) > 0).length;
     const winRateCI = orderedTrades.length ? wilsonInterval(wins, orderedTrades.length) : null;
 
+    const pooledTotalPnl = orderedTrades.reduce((sum, trade) => sum + (Number(trade.pnlPercent) || 0), 0);
+
     return {
         trades: stats.trades,
-        totalPnl: stats.totalReturn,
+        totalPnl: pooledTotalPnl,
         winRate: stats.winRate != null ? stats.winRate * 100 : null,
         winRateCI: winRateCI ? { lower: winRateCI.lower * 100, upper: winRateCI.upper * 100 } : null,
         expectancy: stats.expectancy,

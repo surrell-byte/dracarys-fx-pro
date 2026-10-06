@@ -10,6 +10,7 @@
 // storage or the DOM.
 
 import { wilsonInterval } from "@analysis/payoutMetrics.js";
+import { computeRStats } from "@analysis/rMetrics.js";
 
 // Core expectancy/profit-factor numbers. Profit factor and "expectancy per
 // trade" are the two numbers that actually answer "is this worth trading",
@@ -62,24 +63,28 @@ export function computeDrawdownStats(trades) {
         return { maxDrawdown: 0, avgDrawdown: 0, recoveryFactor: null, totalReturn: 0 };
     }
 
-    let running = 0;
-    let peak = 0;
+    let equity = 1;
+    let peak = 1;
     let maxDrawdown = 0;
     let drawdownSum = 0;
     let drawdownSamples = 0;
 
-    trades.forEach((t) => {
-        running += t.pnlPercent;
-        peak = Math.max(peak, running);
-        const drawdown = peak - running;
+    for (const trade of trades) {
+        const pnlPercent = Number(trade.pnlPercent);
+        if (!Number.isFinite(pnlPercent)) continue;
+
+        equity *= 1 + pnlPercent / 100;
+        peak = Math.max(peak, equity);
+        const drawdown = peak > 0 ? ((peak - equity) / peak) * 100 : 0;
+
         if (drawdown > 0) {
             drawdownSum += drawdown;
             drawdownSamples += 1;
         }
         maxDrawdown = Math.max(maxDrawdown, drawdown);
-    });
+    }
 
-    const totalReturn = running;
+    const totalReturn = (equity - 1) * 100;
     const avgDrawdown = drawdownSamples ? drawdownSum / drawdownSamples : 0;
     const recoveryFactor = maxDrawdown > 0 ? totalReturn / maxDrawdown : null;
 
@@ -168,12 +173,14 @@ export function computeStrategyStats(trades, options = {}) {
     const riskAdjusted = computeRiskAdjustedReturns(trades, options);
     const streaks = computeStreaks(trades);
     const sampleConfidence = computeSampleConfidence(trades, options);
+    const rStats = computeRStats(trades);
 
     return {
         ...expectancyStats,
         ...drawdownStats,
         ...riskAdjusted,
         ...streaks,
+        ...rStats,
         sampleConfidence
     };
 }

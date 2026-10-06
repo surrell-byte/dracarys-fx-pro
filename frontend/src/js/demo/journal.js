@@ -24,6 +24,48 @@ function buildNote(trade) {
         + `${trade.exitReason || "Manually closed."}`;
 }
 
+export function buildJournalEntriesFromSignals(rows = []) {
+    if (!Array.isArray(rows)) return [];
+
+    return rows.map((row) => {
+        const pnl = Number(row.pnl_pct ?? row.pnl ?? 0);
+        const strategy = row.strategy_label || row.strategy_id || row.strategy || "Signal Strategy";
+        const symbol = String(row.symbol || "FX");
+        const side = String(row.type || "BUY").toUpperCase();
+        const sign = pnl >= 0 ? "gain" : "loss";
+        const outcome = String(row.outcome || (pnl >= 0 ? "win" : "loss")).toLowerCase();
+        const closedAt = row.closed_at || row.closedAt || new Date().toISOString();
+        const confidence = Number.isFinite(Number(row.confidence)) ? Number(row.confidence) : null;
+        const confidenceText = confidence !== null ? `${Math.round(confidence)}% confidence` : "no confidence score";
+        const closeReason = row.close_reason || row.exitReason || row.reason || "Closed by the scheduler.";
+        const sideLabel = side === "SELL" ? "short" : side === "BUY" ? "long" : String(side).toLowerCase();
+        const pnlText = `${pnl >= 0 ? "+" : ""}${Number.isFinite(pnl) ? pnl.toFixed(2) : "0.00"}%`;
+        const outcomeBadge = outcome === "win" ? "WIN" : "LOSS";
+        const outcomeWord = outcome === "win" ? "Win" : "Loss";
+        const note = `${outcomeBadge} on ${strategy} — went ${sideLabel} in ${symbol} (${confidenceText}), closed ${closeReason}, and ${outcome === "win" ? "booked" : "reported"} ${pnlText}. ${row.reason || "Review the setup and learn from the exit."}`;
+        const plainNote = `${outcomeWord} on ${strategy} — went ${sideLabel} in ${symbol} (${confidenceText}), closed ${closeReason}, and ${outcome === "win" ? "booked" : "reported"} ${pnlText}. ${row.reason || "Review the setup and learn from the exit."}`;
+
+        return {
+            symbol,
+            strategy,
+            strategyId: row.strategy_id || strategy,
+            side,
+            pnl,
+            confidence,
+            entryPrice: Number(row.entry_price ?? row.entryPrice ?? 0),
+            exitPrice: Number(row.exit_price ?? row.exitPrice ?? 0),
+            exitReason: closeReason,
+            closedAt,
+            outcome,
+            note,
+            plainNote,
+            outcomeBadge,
+            pnlLabel: sign,
+            closedAtMs: new Date(closedAt).valueOf()
+        };
+    });
+}
+
 // Called by tradeEngine right after a trade closes.
 export function addJournalEntry(trade) {
     const acc = demo.get();

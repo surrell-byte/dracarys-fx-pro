@@ -205,19 +205,23 @@ describe(
         );
 
         it(
-            "identifies a gross signal failure",
+            "identifies a gross signal failure when there is no favorable excursion dominance",
             () => {
                 const result =
                     buildStrategyDiagnostics(
                         [
                             TRADE({
                                 pnl: -0.3,
-                                gross: -0.2
+                                gross: -0.2,
+                                mfe: -0.2,
+                                mae: -0.8
                             }),
 
                             TRADE({
                                 pnl: -0.4,
-                                gross: -0.3
+                                gross: -0.3,
+                                mfe: -0.1,
+                                mae: -0.9
                             })
                         ],
                         {
@@ -291,6 +295,34 @@ describe(
                 expect(
                     result
                 ).toHaveLength(2);
+            }
+        );
+
+        it(
+            "treats negative gross expectancy with favorable excursions as exit-model failure before signal failure",
+            () => {
+                const result = buildStrategyDiagnostics([
+                    TRADE({
+                        pnl: -0.6,
+                        gross: -0.1,
+                        cost: -0.5,
+                        closeReason: "stop_loss",
+                        mae: -0.2,
+                        mfe: 1.4,
+                        holdingCandles: 5
+                    }),
+                    TRADE({
+                        pnl: -0.4,
+                        gross: -0.2,
+                        cost: -0.2,
+                        closeReason: "stop_loss",
+                        mae: -0.3,
+                        mfe: 1.6,
+                        holdingCandles: 6
+                    })
+                ], { strategy: "test" });
+
+                expect(result.diagnosis.category).toBe("EXIT_MODEL_FAILURE");
             }
         );
 
